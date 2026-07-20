@@ -743,31 +743,10 @@
             margin-left: 4px;
         }
         
-        .demo-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(7, 26, 43, 0.95);
-            z-index: 9998;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
         .hidden {
             display: none !important;
         }
     </style>
-
-    <div class="demo-overlay" id="demoOverlay">
-        <div class="play-button-overlay">
-            <div class="play-btn" id="playBtn">
-                <svg viewBox="0 0 24 24">
-                    <path d="M8 5v14l11-7z"/>
-                </svg>
-            </div>
-            <p class="text-center text-white mt-4 text-lg">点击开始60秒产品演示</p>
-        </div>
-    </div>
 
     <div class="timer-overlay" id="timerOverlay">
         <span id="timer">00:00</span> / 01:00
@@ -781,8 +760,6 @@
     <script>
         const cursorDot = document.getElementById('cursorDot');
         const cursorRing = document.getElementById('cursorRing');
-        const demoOverlay = document.getElementById('demoOverlay');
-        const playBtn = document.getElementById('playBtn');
         const timerOverlay = document.getElementById('timerOverlay');
         const subtitleOverlay = document.getElementById('subtitleOverlay');
         const subtitleText = document.getElementById('subtitleText');
@@ -792,7 +769,6 @@
         let isAutoDemo = false;
         let demoTime = 0;
         let demoInterval = null;
-        let cursorInterval = null;
 
         document.addEventListener('mousemove', (e) => {
             if (!isAutoDemo) {
@@ -835,7 +811,6 @@
 
         async function runDemo() {
             isAutoDemo = true;
-            demoOverlay.classList.add('hidden');
             timerOverlay.classList.remove('hidden');
             demoTime = 0;
             updateTimer();
@@ -899,7 +874,6 @@
             setTimeout(() => {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
                 timerOverlay.classList.add('hidden');
-                demoOverlay.classList.remove('hidden');
             }, 1000);
         }
 
@@ -925,7 +899,9 @@
             });
         }
 
-        playBtn.addEventListener('click', runDemo);
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(runDemo, 1000);
+        });
     </script>
 </body>
 </html>
