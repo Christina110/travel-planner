@@ -1,0 +1,47 @@
+name: travel_planner
+description: AI-powered travel planning app with weather, budget, navigation, and more
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: ">=3.10.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.19.0
+  provider: ^6.0.5
+  http: ^1.1.0
+  shared_preferences: ^2.2.2
+  path_provider: ^2.1.1
+  isar: ^3.1.0
+  isar_flutter_libs: ^3.1.0
+  flutter_map: ^6.1.0
+  latlong2: ^0.9.0
+  flutter_tts: ^3.8.1
+  url_launcher: ^6.2.0
+  share_plus: ^7.2.1
+  fl_chart: ^0.68.0
+  image_picker: ^1.0.7
+  geolocator: ^11.0.0
+  flutter_svg: ^2.0.9
+  carousel_slider: ^4.3.0
+  shimmer: ^3.0.0
+  cached_network_image: ^3.3.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  build_runner: ^2.4.6
+  isar_generator: ^3.1.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/icons/
+    - assets/images/
+    - assets/languages/
+    - assets/data/

@@ -1,0 +1,3258 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>旅行规划助手</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-chartjs-2@5.2.0"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="cities-data.js"></script>
+  <script src="cities-images.js"></script>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Noto Sans SC', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      background: #071A2B;
+      min-height: 100vh;
+    }
+    .scrollbar-hide::-webkit-scrollbar {
+      display: none;
+    }
+    .scrollbar-hide {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .glass-card {
+      background: rgba(8, 20, 40, 0.75);
+      backdrop-filter: blur(24px);
+      border: 1px solid rgba(0, 217, 197, 0.12);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 217, 197, 0.05);
+    }
+    .glass-card-hover:hover {
+      background: rgba(8, 20, 40, 0.9);
+      border-color: rgba(0, 217, 197, 0.3);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(0, 217, 197, 0.1);
+    }
+    .gradient-text {
+      background: linear-gradient(135deg, #00D9C5 0%, #00A8A0 50%, #008078 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .glow-text {
+      text-shadow: 0 0 30px rgba(0, 217, 197, 0.6), 0 0 60px rgba(0, 217, 197, 0.3);
+    }
+    .glow-border {
+      box-shadow: 0 0 25px rgba(0, 217, 197, 0.4), inset 0 0 20px rgba(0, 217, 197, 0.1);
+    }
+    .btn-glow {
+      box-shadow: 0 0 20px rgba(0, 217, 197, 0.5), 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
+    .btn-glow:hover {
+      box-shadow: 0 0 35px rgba(0, 217, 197, 0.7), 0 6px 20px rgba(0, 0, 0, 0.4);
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes slideInRight {
+      from { opacity: 0; transform: translateX(20px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes slideInLeft {
+      from { opacity: 0; transform: translateX(-20px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes slideInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes scaleIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    @keyframes bounceIn {
+      0% { opacity: 0; transform: scale(0.3); }
+      50% { opacity: 1; transform: scale(1.05); }
+      70% { transform: scale(0.9); }
+      100% { transform: scale(1); }
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-5px); }
+    }
+    .animate-fadeIn {
+      animation: fadeIn 0.3s ease-out;
+    }
+    .animate-slideInRight {
+      animation: slideInRight 0.3s ease-out;
+    }
+    .animate-slideInLeft {
+      animation: slideInLeft 0.3s ease-out;
+    }
+    .animate-slideInUp {
+      animation: slideInUp 0.4s ease-out;
+    }
+    .animate-scaleIn {
+      animation: scaleIn 0.25s ease-out;
+    }
+    .animate-pulse {
+      animation: pulse 2s infinite;
+    }
+    .animate-bounceIn {
+      animation: bounceIn 0.5s ease-out;
+    }
+    .animate-float {
+      animation: float 3s ease-in-out infinite;
+    }
+    .skeleton {
+      background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 8px;
+    }
+    .btn-press:active {
+      transform: scale(0.98);
+      transition: transform 0.1s ease;
+    }
+    .card-hover {
+      transition: all 0.3s ease;
+    }
+    .card-hover:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+    }
+    .page-transition {
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+    .page-leaving {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    .page-entering {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  </style>
+</head>
+<body class="min-h-screen text-white">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useContext, createContext } = React;
+
+    const ThemeContext = createContext({
+      theme: 'default',
+      setTheme: () => {},
+    });
+
+    const LanguageContext = createContext({
+      lang: 'zh',
+      toggleLang: () => {},
+    });
+
+    const translations = {
+      zh: {
+        appTitle: '旅行规划助手',
+        home: '首页',
+        trips: '我的旅行',
+        createTrip: '创建旅行',
+        weather: '天气',
+        budget: '预算管理',
+        attractions: '景点推荐',
+        accommodations: '住宿推荐',
+        food: '特色小吃',
+        photoSpots: '打卡机位',
+        navigation: '导航',
+        share: '分享',
+        language: '语言',
+        addExpense: '添加支出',
+        totalExpense: '总支出',
+        categories: {
+          food: '餐饮',
+          transport: '交通',
+          accommodation: '住宿',
+          shopping: '购物',
+          entertainment: '娱乐',
+          other: '其他',
+        },
+        search: '搜索',
+        recommend: '推荐',
+        budget: '性价比',
+        featured: '特色',
+        price: '价格',
+        rating: '评分',
+        bookNow: '立即预订',
+        bestTime: '最佳时间',
+        poseTips: '姿势推荐',
+        uploadPhotoSpot: '上传打卡机位',
+        aiGuide: 'AI讲解',
+        startDate: '出发日期',
+        endDate: '返程日期',
+        destination: '目的地',
+        tripName: '旅行名称',
+        save: '保存',
+        cancel: '取消',
+        delete: '删除',
+        duration: '时长',
+        days: '天',
+        planning: '规划中',
+        ongoing: '进行中',
+        completed: '已完成',
+      },
+      en: {
+        appTitle: 'Travel Planner',
+        home: 'Home',
+        trips: 'My Trips',
+        createTrip: 'Create Trip',
+        weather: 'Weather',
+        budget: 'Budget',
+        attractions: 'Attractions',
+        accommodations: 'Accommodations',
+        food: 'Local Food',
+        photoSpots: 'Photo Spots',
+        navigation: 'Navigation',
+        share: 'Share',
+        language: 'Language',
+        addExpense: 'Add Expense',
+        totalExpense: 'Total Expense',
+        categories: {
+          food: 'Food',
+          transport: 'Transport',
+          accommodation: 'Accommodation',
+          shopping: 'Shopping',
+          entertainment: 'Entertainment',
+          other: 'Other',
+        },
+        search: 'Search',
+        recommend: 'Recommend',
+        budget: 'Budget',
+        featured: 'Featured',
+        price: 'Price',
+        rating: 'Rating',
+        bookNow: 'Book Now',
+        bestTime: 'Best Time',
+        poseTips: 'Pose Tips',
+        uploadPhotoSpot: 'Upload Photo Spot',
+        aiGuide: 'AI Guide',
+        startDate: 'Start Date',
+        endDate: 'End Date',
+        destination: 'Destination',
+        tripName: 'Trip Name',
+        save: 'Save',
+        cancel: 'Cancel',
+        delete: 'Delete',
+        duration: 'Duration',
+        days: 'days',
+        planning: 'Planning',
+        ongoing: 'Ongoing',
+        completed: 'Completed',
+      },
+    };
+
+    const themeColors = {
+      default: { primary: '#00D9C5', secondary: '#00A8A0', bg: 'bg-[#071A2B]' },
+      beijing: { primary: '#c0392b', secondary: '#e74c3c', bg: 'bg-[#071A2B]' },
+      shanghai: { primary: '#3498db', secondary: '#2980b9', bg: 'bg-[#071A2B]' },
+      hangzhou: { primary: '#27ae60', secondary: '#2ecc71', bg: 'bg-[#071A2B]' },
+      chengdu: { primary: '#f39c12', secondary: '#e67e22', bg: 'bg-[#071A2B]' },
+      xian: { primary: '#8e44ad', secondary: '#9b59b6', bg: 'bg-[#071A2B]' },
+      lijiang: { primary: '#1abc9c', secondary: '#16a085', bg: 'bg-[#071A2B]' },
+    };
+
+    const mockWeather = {
+      beijing: { temp: 26, condition: '晴', humidity: 45, wind: '东北风 3级', forecast: [{ day: '今天', high: 28, low: 18 }, { day: '明天', high: 29, low: 19 }, { day: '后天', high: 27, low: 17 }] },
+      shanghai: { temp: 28, condition: '多云', humidity: 65, wind: '东南风 4级', forecast: [{ day: '今天', high: 30, low: 22 }, { day: '明天', high: 31, low: 23 }, { day: '后天', high: 29, low: 21 }] },
+      hangzhou: { temp: 25, condition: '小雨', humidity: 80, wind: '东风 2级', forecast: [{ day: '今天', high: 27, low: 21 }, { day: '明天', high: 26, low: 20 }, { day: '后天', high: 28, low: 22 }] },
+      chengdu: { temp: 24, condition: '阴', humidity: 75, wind: '北风 2级', forecast: [{ day: '今天', high: 26, low: 19 }, { day: '明天', high: 25, low: 18 }, { day: '后天', high: 27, low: 20 }] },
+      xian: { temp: 29, condition: '晴', humidity: 35, wind: '西北风 3级', forecast: [{ day: '今天', high: 32, low: 18 }, { day: '明天', high: 31, low: 17 }, { day: '后天', high: 30, low: 16 }] },
+      lijiang: { temp: 22, condition: '晴', humidity: 50, wind: '西南风 3级', forecast: [{ day: '今天', high: 25, low: 12 }, { day: '明天', high: 24, low: 11 }, { day: '后天', high: 26, low: 13 }] },
+    };
+
+    
+
+    const mockPhotoSpots = {
+      beijing: [
+        { name: '故宫角楼', desc: '最佳拍摄点：景山公园万春亭', bestTime: '日出时分', poseTips: '穿古风服装，回眸一笑', likes: 1280, verified: true, lat: 39.9163, lng: 116.3972 },
+        { name: '天安门', desc: '最佳拍摄点：人民英雄纪念碑前', bestTime: '清晨6-7点', poseTips: '张开双臂拥抱祖国', likes: 890, verified: true, lat: 39.9042, lng: 116.4074 },
+        { name: '天坛祈年殿', desc: '最佳拍摄点：丹陛桥', bestTime: '日落时分', poseTips: '低角度仰拍，展现宏伟', likes: 650, verified: true, lat: 39.8822, lng: 116.4066 },
+      ],
+      shanghai: [
+        { name: '外滩夜景', desc: '最佳拍摄点：外滩观景平台', bestTime: '19:00-21:00', poseTips: '利用暖光和冷光对比', likes: 1520, verified: true, lat: 31.2304, lng: 121.4737 },
+        { name: '武康大楼', desc: '最佳拍摄点：武康路与淮海中路交叉口', bestTime: '下午阳光斜射', poseTips: '站在马路对面仰拍', likes: 980, verified: true, lat: 31.2163, lng: 121.4482 },
+      ],
+      hangzhou: [
+        { name: '西湖断桥', desc: '最佳拍摄点：白堤', bestTime: '清晨薄雾', poseTips: '撑油纸伞，意境唯美', likes: 1120, verified: true, lat: 30.2741, lng: 120.1551 },
+        { name: '雷峰塔', desc: '最佳拍摄点：苏堤', bestTime: '日落时分', poseTips: '剪影效果，浪漫唯美', likes: 780, verified: true, lat: 30.2547, lng: 120.1613 },
+      ],
+      chengdu: [
+        { name: '大熊猫', desc: '最佳拍摄点：大熊猫基地月亮产房', bestTime: '上午9-11点', poseTips: '抓拍吃竹子的可爱瞬间', likes: 2050, verified: true, lat: 30.7431, lng: 104.1180 },
+        { name: '宽窄巷子', desc: '最佳拍摄点：宽窄巷子入口', bestTime: '傍晚灯光亮起', poseTips: '融入市井生活场景', likes: 860, verified: true, lat: 30.6628, lng: 104.0360 },
+      ],
+      xian: [
+        { name: '兵马俑', desc: '最佳拍摄点：一号坑观景台', bestTime: '上午光线好', poseTips: '与兵马俑同框，穿越感', likes: 1680, verified: true, lat: 34.3853, lng: 109.2789 },
+        { name: '大雁塔', desc: '最佳拍摄点：大雁塔北广场', bestTime: '音乐喷泉表演时', poseTips: '喷泉为背景，动感十足', likes: 1150, verified: true, lat: 34.2257, lng: 108.9534 },
+      ],
+      lijiang: [
+        { name: '丽江古城夜景', desc: '最佳拍摄点：四方街', bestTime: '夜晚灯笼亮起', poseTips: '古镇小巷，灯火阑珊', likes: 1420, verified: true, lat: 26.8667, lng: 100.2200 },
+        { name: '玉龙雪山', desc: '最佳拍摄点：蓝月谷', bestTime: '上午阳光明媚', poseTips: '雪山为背景，清新自然', likes: 1890, verified: true, lat: 27.0319, lng: 100.2390 },
+      ],
+    };
+
+    const generateAiGuide = (attractionName, location) => {
+      const guides = {
+        '故宫': {
+          beijing: '故宫，又称紫禁城，是中国明清两代的皇家宫殿。它始建于明永乐四年（1406年），历时14年建成，至今已有600多年的历史。故宫占地面积约72万平方米，建筑面积约15万平方米，有大小宫殿七十多座，房屋九千余间，是世界上现存规模最大、保存最为完整的木质结构古建筑群。故宫不仅是中国古代宫廷建筑的精华，更是中华民族悠久历史和灿烂文化的象征。',
+        },
+        '兵马俑': {
+          xian: '秦始皇兵马俑，被誉为世界第八大奇迹。它是秦始皇陵的陪葬坑，始建于公元前246年。1974年，兵马俑被偶然发现，震惊了世界。目前已发现三个坑，总面积达2万余平方米，出土了数千件陶制兵马俑。这些兵马俑形态各异，栩栩如生，每个都有独特的面部表情和服饰细节。',
+        },
+        '天安门': {
+          beijing: '天安门是中华人民共和国的象征，位于北京市中心。天安门城楼是中国古代宫殿建筑的精华，始建于明朝永乐十五年（1417年）。它见证了中国许多重要的历史时刻，是每个中国人心中的圣地。',
+        },
+        '天坛': {
+          beijing: '天坛是明清两代皇帝祭天祈谷的场所，始建于明永乐十八年（1420年）。天坛占地面积约273万平方米，是中国现存规模最大、保存最完整的古代祭祀建筑群，也是世界文化遗产。祈年殿是天坛的标志性建筑，以其优美的建筑造型和深刻的文化内涵闻名于世。',
+        },
+        '长城': {
+          beijing: '长城是中国古代的军事防御工程，始建于春秋战国时期，是世界七大奇迹之一。八达岭长城是长城中最著名的一段，位于北京市延庆区，以其雄伟壮观的景色和深厚的历史底蕴吸引着无数游客。',
+        },
+        '颐和园': {
+          beijing: '颐和园是中国现存规模最大、保存最完整的皇家园林，始建于清朝乾隆年间。它以昆明湖、万寿山为基址，汲取江南园林的设计手法而建成，被誉为皇家园林博物馆。',
+        },
+        '外滩': {
+          shanghai: '外滩是上海最具标志性的景观，位于黄浦江畔，拥有众多历史悠久的欧式建筑。这些建筑风格各异，被誉为"万国建筑博览群"，是上海近代历史的见证。',
+        },
+        '东方明珠': {
+          shanghai: '东方明珠广播电视塔是上海的标志性建筑，位于浦东新区陆家嘴。塔高468米，是亚洲第一高塔，也是世界第三高塔。登上塔顶，可以俯瞰整个上海的壮丽景色。',
+        },
+        '西湖': {
+          hangzhou: '西湖是杭州的灵魂，也是中国十大风景名胜之一。西湖三面环山，风景秀丽，自古以来就是文人墨客的游览胜地。西湖十景更是闻名遐迩，如断桥残雪、苏堤春晓、雷峰塔等。',
+        },
+        '灵隐寺': {
+          hangzhou: '灵隐寺是中国著名的佛教寺院，位于杭州市西湖区灵隐山麓。它始建于东晋咸和元年（326年），是杭州最早的名刹，也是中国佛教禅宗的重要寺院之一。',
+        },
+        '大雁塔': {
+          xian: '大雁塔位于西安市大慈恩寺内，是唐代玄奘法师为存放经卷而建。它始建于唐高宗永徽三年（652年），是西安的标志性建筑之一，也是中国现存最早、规模最大的唐代四方楼阁式砖塔。',
+        },
+        '布达拉宫': {
+          lhasa: '布达拉宫是世界上海拔最高的宫殿群，位于西藏拉萨市红山之上。它始建于公元7世纪，是藏传佛教的圣地，也是西藏最庞大、最完整的古代宫堡建筑群。',
+        },
+        '大熊猫基地': {
+          chengdu: '成都大熊猫繁育研究基地是世界最大的大熊猫人工繁育机构，位于成都市成华区。这里生活着众多可爱的大熊猫，是游客们近距离观赏大熊猫的理想场所。',
+        },
+        '宽窄巷子': {
+          chengdu: '宽窄巷子是成都遗留下来的较成规模的清朝古街道，位于成都市青羊区。它由宽巷子、窄巷子和井巷子三条平行排列的老式街道及其之间的四合院群落组成，是成都历史文化的重要载体。',
+        },
+        '黄鹤楼': {
+          wuhan: '黄鹤楼是江南三大名楼之一，位于武汉市武昌区蛇山之巅。它始建于三国时期，因唐代诗人崔颢的《黄鹤楼》一诗而闻名天下。登上黄鹤楼，可以俯瞰长江美景。',
+        },
+        '广州塔': {
+          guangzhou: '广州塔，又称小蛮腰，是广州的地标性建筑，位于广州市海珠区。塔高600米，是中国第一高塔，世界第二高塔。登上广州塔，可以俯瞰整个广州的城市风光。',
+        },
+      };
+      return guides[attractionName]?.[location] || `欢迎来到${location}的${attractionName}！这是一个非常值得一游的地方，有着丰富的历史文化内涵。在这里，您可以感受到${location}独特的魅力和风情。`;
+    };
+
+    const App = () => {
+      const [currentPage, setCurrentPage] = useState('home');
+      const [pageHistory, setPageHistory] = useState([]);
+      const [trips, setTrips] = useState([]);
+      const [currentTrip, setCurrentTrip] = useState(null);
+      const [currentHotel, setCurrentHotel] = useState(null);
+      const [expenses, setExpenses] = useState([]);
+      const [searchQuery, setSearchQuery] = useState('');
+      const [aiGuideText, setAiGuideText] = useState('');
+      const [isSpeaking, setIsSpeaking] = useState(false);
+      const [isTransitioning, setIsTransitioning] = useState(false);
+      const [transitionDirection, setTransitionDirection] = useState('forward');
+
+      const navigateTo = (page) => {
+        setIsTransitioning(true);
+        setTransitionDirection('forward');
+        setTimeout(() => {
+          setPageHistory(prev => [...prev, currentPage]);
+          setCurrentPage(page);
+          setTimeout(() => setIsTransitioning(false), 50);
+        }, 200);
+      };
+
+      const goBack = () => {
+        if (pageHistory.length === 0) {
+          setCurrentPage('home');
+          return;
+        }
+        setIsTransitioning(true);
+        setTransitionDirection('backward');
+        setTimeout(() => {
+          const prevPage = pageHistory[pageHistory.length - 1];
+          setPageHistory(prev => prev.slice(0, -1));
+          setCurrentPage(prevPage);
+          setTimeout(() => setIsTransitioning(false), 50);
+        }, 200);
+      };
+
+      useEffect(() => {
+        const saved = localStorage.getItem('travel_trips');
+        if (saved) setTrips(JSON.parse(saved));
+        const savedExpenses = localStorage.getItem('travel_expenses');
+        if (savedExpenses) setExpenses(JSON.parse(savedExpenses));
+      }, []);
+
+      useEffect(() => {
+        localStorage.setItem('travel_trips', JSON.stringify(trips));
+      }, [trips]);
+
+      useEffect(() => {
+        localStorage.setItem('travel_expenses', JSON.stringify(expenses));
+      }, [expenses]);
+
+      useEffect(() => {
+        if (currentTrip) {
+          const city = window.getCityByName(currentTrip.destination);
+          if (city) {
+            document.body.className = `bg-[#071A2B]`;
+          } else {
+            document.body.className = 'bg-[#071A2B]';
+          }
+        }
+      }, [currentTrip]);
+
+      const requestNotificationPermission = async () => {
+        if ('Notification' in window) {
+          const permission = await Notification.requestPermission();
+          return permission === 'granted';
+        }
+        return false;
+      };
+
+      const sendNotification = (title, options = {}) => {
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification(title, {
+            body: options.body || '',
+            icon: options.icon || 'https://cdn-icons-png.flaticon.com/512/3242/3242257.png',
+            badge: options.badge || 'https://cdn-icons-png.flaticon.com/512/3242/3242257.png',
+            ...options
+          });
+        }
+      };
+
+      const scheduleTripReminder = (trip) => {
+        const tripDate = new Date(trip.startDate);
+        const now = new Date();
+        const diff = tripDate.getTime() - now.getTime();
+        
+        if (diff > 0) {
+          const oneDayBefore = diff - 24 * 60 * 60 * 1000;
+          const oneHourBefore = diff - 60 * 60 * 1000;
+          
+          if (oneDayBefore > 0) {
+            setTimeout(() => {
+              sendNotification('旅行提醒', {
+                body: `明天就要出发去${trip.destination}啦！记得收拾好行李哦~`,
+                tag: 'trip-reminder'
+              });
+            }, oneDayBefore);
+          }
+          
+          if (oneHourBefore > 0) {
+            setTimeout(() => {
+              sendNotification('旅行提醒', {
+                body: `还有1小时就要出发去${trip.destination}啦！`,
+                tag: 'trip-reminder'
+              });
+            }, oneHourBefore);
+          }
+        }
+      };
+
+      const checkWeatherAlerts = () => {
+        if (currentTrip) {
+          const dest = currentTrip.destination.toLowerCase();
+          const weather = mockWeather[dest] || { temp: 25, condition: '晴', humidity: 50, wind: '微风' };
+          
+          if (weather.condition.includes('雨') || weather.condition.includes('雪') || weather.condition.includes('雷')) {
+            sendNotification('天气预警', {
+              body: `${currentTrip.destination}当前${weather.condition}，温度${weather.temp}°C，出行请注意携带雨具！`,
+              tag: 'weather-alert'
+            });
+          }
+        }
+      };
+
+      const addTrip = async (trip) => {
+        setTrips([...trips, { ...trip, id: Date.now(), status: 'planning' }]);
+        
+        const hasPermission = await requestNotificationPermission();
+        if (hasPermission) {
+          scheduleTripReminder(trip);
+          checkWeatherAlerts();
+        }
+        
+        navigateTo('trips');
+      };
+
+      const deleteTrip = (id) => {
+        setTrips(trips.filter(t => t.id !== id));
+        if (currentTrip?.id === id) setCurrentTrip(null);
+      };
+
+      const addExpense = (expense) => {
+        setExpenses([...expenses, { ...expense, id: Date.now(), tripId: currentTrip?.id }]);
+      };
+
+      const getTheme = () => {
+        if (!currentTrip) return themeColors.default;
+        const dest = currentTrip.destination.toLowerCase();
+        return themeColors[dest] || themeColors.default;
+      };
+
+      const speakGuide = () => {
+        if ('speechSynthesis' in window) {
+          const utterance = new SpeechSynthesisUtterance(aiGuideText);
+          utterance.lang = 'zh-CN';
+          utterance.rate = 0.9;
+          window.speechSynthesis.speak(utterance);
+          setIsSpeaking(true);
+          utterance.onend = () => setIsSpeaking(false);
+        }
+      };
+
+      const stopSpeaking = () => {
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+          setIsSpeaking(false);
+        }
+      };
+
+      const shareTrip = () => {
+        if (currentTrip) {
+          const text = `我计划去${currentTrip.destination}旅行！时间：${currentTrip.startDate} - ${currentTrip.endDate}，共${currentTrip.duration}天。快来看看我的旅行计划吧！`;
+          if (navigator.share) {
+            navigator.share({ title: currentTrip.name, text });
+          } else {
+            navigator.clipboard.writeText(text);
+            alert('已复制到剪贴板！');
+          }
+        }
+      };
+
+      const startNavigation = (lat, lng, name) => {
+        const url = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}&zoom=16&layers=M&marker=${lat},${lng},${encodeURIComponent(name)}`;
+        window.open(url, '_blank');
+      };
+
+      const getTripExpenses = (tripId) => {
+        return expenses.filter(e => e.tripId === tripId);
+      };
+
+      const getTotalExpense = (tripId) => {
+        return getTripExpenses(tripId).reduce((sum, e) => sum + e.amount, 0);
+      };
+
+      return (
+        <ThemeContext.Provider value={{ theme: getTheme(), setTheme: () => {} }}>
+          <LanguageContext.Provider value={{ lang: 'zh', toggleLang: () => {} }}>
+            {currentPage === 'home' ? (
+              <HomePage 
+                trips={trips} 
+                setTrips={setTrips}
+                setCurrentTrip={setCurrentTrip}
+                navigateTo={navigateTo}
+                theme={getTheme()}
+                expenses={expenses}
+              />
+            ) : (
+              <div className="min-h-screen bg-[#071A2B]">
+                <Header 
+                  currentPage={currentPage} 
+                  goBack={goBack}
+                  theme={getTheme()}
+                  onShare={shareTrip}
+                />
+                <main className="px-4 py-6 max-w-4xl mx-auto">
+                  {currentPage === 'trips' && (
+                    <TripsPage 
+                      trips={trips} 
+                      setCurrentTrip={setCurrentTrip}
+                      navigateTo={navigateTo}
+                      deleteTrip={deleteTrip}
+                      theme={getTheme()}
+                    />
+                  )}
+                  {currentPage === 'createTrip' && (
+                    <CreateTripPage 
+                      addTrip={addTrip} 
+                      navigateTo={navigateTo}
+                      goBack={goBack}
+                      theme={getTheme()}
+                    />
+                  )}
+                  {currentPage === 'tripDetail' && currentTrip && (
+                    <TripDetailPage 
+                      trip={currentTrip}
+                      expenses={getTripExpenses(currentTrip.id)}
+                      theme={getTheme()}
+                      navigateTo={navigateTo}
+                      setCurrentTrip={setCurrentTrip}
+                      setTrips={setTrips}
+                    />
+                  )}
+                  {currentPage === 'map' && currentTrip && (
+                    <MapPage destination={currentTrip.destination} theme={getTheme()} />
+                  )}
+                  {currentPage === 'weather' && currentTrip && (
+                    <WeatherPage destination={currentTrip.destination} theme={getTheme()} />
+                  )}
+                  {currentPage === 'budget' && currentTrip && (
+                    <BudgetPage 
+                      expenses={getTripExpenses(currentTrip.id)}
+                      addExpense={addExpense}
+                      theme={getTheme()}
+                    />
+                  )}
+                  {currentPage === 'attractions' && currentTrip && (
+                    <AttractionsPage 
+                      destination={currentTrip.destination}
+                      onAiGuide={(name) => setAiGuideText(generateAiGuide(name, currentTrip.destination.toLowerCase()))}
+                      aiGuideText={aiGuideText}
+                      isSpeaking={isSpeaking}
+                      speakGuide={speakGuide}
+                      stopSpeaking={stopSpeaking}
+                      onNavigate={startNavigation}
+                      theme={getTheme()}
+                    />
+                  )}
+                  {currentPage === 'accommodations' && currentTrip && (
+                    <AccommodationsPage 
+                      destination={currentTrip.destination}
+                      setCurrentHotel={setCurrentHotel}
+                      navigateTo={navigateTo}
+                      theme={getTheme()}
+                    />
+                  )}
+                  {currentPage === 'hotelDetail' && currentHotel && (
+                    <HotelDetailPage 
+                      hotel={currentHotel}
+                      theme={getTheme()}
+                    />
+                  )}
+                  {currentPage === 'food' && currentTrip && (
+                    <FoodPage destination={currentTrip.destination} theme={getTheme()} />
+                  )}
+                  {currentPage === 'photoSpots' && currentTrip && (
+                    <PhotoSpotsPage 
+                      destination={currentTrip.destination}
+                      onNavigate={startNavigation}
+                      theme={getTheme()}
+                    />
+                  )}
+                  {currentPage === 'itinerary' && currentTrip && (
+                    <ItineraryPage 
+                      trip={currentTrip}
+                      theme={getTheme()}
+                    />
+                  )}
+                  {currentPage === 'smartItinerary' && (
+                    <SmartItineraryPage 
+                      currentTrip={currentTrip}
+                      setCurrentTrip={setCurrentTrip}
+                      navigateTo={navigateTo}
+                    />
+                  )}
+                </main>
+              </div>
+            )}
+          </LanguageContext.Provider>
+        </ThemeContext.Provider>
+      );
+    };
+
+    const Header = ({ currentPage, goBack, theme, onShare }) => {
+      return (
+        <header className={`sticky top-0 z-50 transition-all duration-300 ${
+          currentPage === 'home' ? 'bg-transparent' : 'glass-card border-b border-[#00D9C5]/20'
+        }`}>
+          <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 flex items-center">
+            {currentPage !== 'home' && (
+              <button 
+                onClick={goBack}
+                className="p-2 rounded-full hover:bg-[#00D9C5]/20 transition-colors"
+              >
+                <span className="material-icons text-[#00D9C5]">arrow_back</span>
+              </button>
+            )}
+          </div>
+        </header>
+      );
+    };
+
+    const SkeletonCard = ({ className = '' }) => (
+      <div className={`glass-card rounded-xl overflow-hidden ${className}`}>
+        <div className="skeleton h-40 w-full"></div>
+        <div className="p-4">
+          <div className="skeleton h-5 w-2/3 mb-3"></div>
+          <div className="skeleton h-4 w-1/2 mb-3"></div>
+          <div className="skeleton h-4 w-full mb-4"></div>
+          <div className="skeleton h-8 w-1/3"></div>
+        </div>
+      </div>
+    );
+
+    const SkeletonPage = () => (
+      <div className="pb-20 animate-fadeIn">
+        <div className="skeleton h-8 w-1/2 mb-4"></div>
+        <div className="grid grid-cols-3 gap-3 mb-6">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="skeleton h-24 rounded-xl"></div>
+          ))}
+        </div>
+        <div className="skeleton h-6 w-1/3 mb-3"></div>
+        <div className="space-y-3 mb-6">
+          {[1, 2].map(i => (
+            <SkeletonCard key={i} />
+          ))}
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          {[1, 2, 3, 4, 5, 6].map(i => (
+            <div key={i} className="glass-card rounded-xl p-4 skeleton h-20"></div>
+          ))}
+        </div>
+      </div>
+    );
+
+    const BottomNav = ({ currentPage, setCurrentPage, theme }) => {
+      const navItems = [
+        { page: 'home', icon: 'compass', label: '探索' },
+        { page: 'trips', icon: 'trip_origin', label: '旅行' },
+        { page: 'createTrip', icon: 'add_circle', label: '新建' },
+      ];
+
+      return (
+        <nav className="fixed bottom-0 left-0 right-0 glass-card border-t border-[#00D9C5]/20 z-50">
+          <div className="max-w-4xl mx-auto flex justify-around items-center h-16">
+            {navItems.map(item => (
+              <button
+                key={item.page}
+                onClick={() => setCurrentPage(item.page)}
+                className={`flex flex-col items-center justify-center w-full h-full transition-all duration-300 ${
+                  currentPage === item.page ? 'text-[#00D9C5]' : 'text-white/50'
+                }`}
+              >
+                <span 
+                  className="material-icons text-xl transition-all duration-300" 
+                  style={currentPage === item.page ? { 
+                    textShadow: '0 0 15px rgba(0, 217, 197, 0.6)',
+                    transform: 'scale(1.1)'
+                  } : {}}
+                >{item.icon}</span>
+                <span className={`text-xs mt-1 transition-all duration-300 ${
+                  currentPage === item.page ? 'font-medium' : ''
+                }`}>{item.label}</span>
+              </button>
+            ))}
+          </div>
+        </nav>
+      );
+    };
+
+    const HomePage = ({ trips, setTrips, setCurrentTrip, navigateTo, theme, expenses }) => {
+      const [currentCity, setCurrentCity] = useState('');
+      const [currentWeather, setCurrentWeather] = useState(null);
+      const [showCitySelector, setShowCitySelector] = useState(false);
+
+      const handleCitySelect = (cityName) => {
+        setCurrentCity(cityName);
+        const weather = window.getDefaultWeather ? window.getDefaultWeather(cityName) : { temp: 25, condition: '晴' };
+        setCurrentWeather(weather);
+        setShowCitySelector(false);
+      };
+
+      const featuredCities = {
+        '北京': { nameEn: 'Beijing', image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Beijing%20Forbidden%20City%20ancient%20palace%20night%20scene%20cinematic%20travel%20photography&image_size=portrait_4_3' },
+        '上海': { nameEn: 'Shanghai', image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Shanghai%20Lujiazui%20skyline%20modern%20city%20night%20lights%20Huangpu%20River%20cinematic%20travel%20photography&image_size=portrait_4_3' },
+        '杭州': { nameEn: 'Hangzhou', image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Hangzhou%20West%20Lake%20pagoda%20traditional%20boat%20sunset%20cinematic%20travel%20photography&image_size=portrait_4_3' },
+        '成都': { nameEn: 'Chengdu', image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Chengdu%20panda%20sanctuary%20giant%20panda%20bamboo%20forest%20cinematic%20travel%20photography&image_size=portrait_4_3' },
+        '西安': { nameEn: "Xi'an", image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Xian%20Terracotta%20Army%20ancient%20warriors%20museum%20dramatic%20lighting%20cinematic%20travel%20photography&image_size=portrait_4_3' },
+        '重庆': { nameEn: 'Chongqing', image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Chongqing%20mountain%20city%20night%20scene%20skyline%20Yangtze%20River%20cinematic%20travel%20photography&image_size=portrait_4_3' },
+        '三亚': { nameEn: 'Sanya', image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Sanya%20tropical%20beach%20blue%20water%20palm%20trees%20sunset%20cinematic%20travel%20photography&image_size=portrait_4_3' },
+        '拉萨': { nameEn: 'Lhasa', image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Lhasa%20Potala%20Palace%20snow%20mountains%20sunset%20golden%20light%20cinematic%20travel%20photography&image_size=portrait_4_3' },
+        '广州': { nameEn: 'Guangzhou', image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Guangzhou%20Canton%20Tower%20modern%20skyline%20Pearl%20River%20night%20cinematic%20travel%20photography&image_size=portrait_4_3' },
+        '深圳': { nameEn: 'Shenzhen', image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Shenzhen%20modern%20skyline%20futuristic%20buildings%20night%20lights%20cinematic%20travel%20photography&image_size=portrait_4_3' },
+        '南京': { nameEn: 'Nanjing', image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Nanjing%20Sun%20Yat-sen%20Mausoleum%20purple%20mountain%20autumn%20leaves%20cinematic%20travel%20photography&image_size=portrait_4_3' },
+        '长沙': { nameEn: 'Changsha', image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Changsha%20Orange%20Island%20statue%20Xiangjiang%20River%20night%20cinematic%20travel%20photography&image_size=portrait_4_3' },
+        '苏州': { nameEn: 'Suzhou', image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Suzhou%20traditional%20garden%20humble%20administrator%20pagoda%20canal%20cinematic%20travel%20photography&image_size=portrait_4_3' },
+        '青岛': { nameEn: 'Qingdao', image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Qingdao%20coastal%20city%20German%20architecture%20beach%20sunset%20cinematic%20travel%20photography&image_size=portrait_4_3' },
+        '大连': { nameEn: 'Dalian', image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Dalian%20seaside%20city%20bridge%20ocean%20sunset%20cinematic%20travel%20photography&image_size=portrait_4_3' },
+        '厦门': { nameEn: 'Xiamen', image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Xiamen%20Gulangyu%20island%20seaside%20colonial%20architecture%20sunset%20cinematic%20travel%20photography&image_size=portrait_4_3' },
+        '丽江': { nameEn: 'Lijiang', image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Lijiang%20ancient%20town%20traditional%20architecture%20snow%20mountains%20cinematic%20travel%20photography&image_size=portrait_4_3' },
+        '昆明': { nameEn: 'Kunming', image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Kunming%20Stone%20Forest%20karst%20landscape%20spring%20flowers%20cinematic%20travel%20photography&image_size=portrait_4_3' },
+        '桂林': { nameEn: 'Guilin', image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Guilin%20karst%20mountains%20Li%20River%20bamboo%20raft%20misty%20morning%20cinematic%20travel%20photography&image_size=portrait_4_3' },
+        '张家界': { nameEn: 'Zhangjiajie', image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Zhangjiajie%20Avatar%20mountains%20pillar%20rocks%20mist%20cinematic%20travel%20photography&image_size=portrait_4_3' },
+        '敦煌': { nameEn: 'Dunhuang', image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Dunhuang%20Mogao%20Caves%20desert%20sand%20dunes%20sunset%20cinematic%20travel%20photography&image_size=portrait_4_3' },
+        '贵阳': { nameEn: 'Guiyang', image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Guiyang%20Karst%20landscape%20waterfall%20green%20mountains%20cinematic%20travel%20photography&image_size=portrait_4_3' },
+        '哈尔滨': { nameEn: 'Harbin', image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Harbin%20ice%20festival%20snow%20sculpture%20winter%20night%20lights%20cinematic%20travel%20photography&image_size=portrait_4_3' },
+        '沈阳': { nameEn: 'Shenyang', image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Shenyang%20Mukden%20Palace%20ancient%20palace%20architecture%20cinematic%20travel%20photography&image_size=portrait_4_3' },
+        '天津': { nameEn: 'Tianjin', image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Tianjin%20Eye%20ferris%20wheel%20Haihe%20River%20bridge%20night%20scene%20cinematic%20travel%20photography&image_size=portrait_4_3' },
+        '郑州': { nameEn: 'Zhengzhou', image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Zhengzhou%20Yellow%20River%20scenic%20area%20sunset%20cinematic%20travel%20photography&image_size=portrait_4_3' },
+        '合肥': { nameEn: 'Hefei', image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Hefei%20Xiaoyaojin%20Park%20traditional%20garden%20lake%20cinematic%20travel%20photography&image_size=portrait_4_3' },
+        '福州': { nameEn: 'Fuzhou', image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Fuzhou%20Three%20Lanes%20Seven%20Alleys%20traditional%20architecture%20lanterns%20cinematic%20travel%20photography&image_size=portrait_4_3' },
+        '海口': { nameEn: 'Haikou', image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Haikou%20coastal%20city%20beach%20sunset%20coconut%20trees%20cinematic%20travel%20photography&image_size=portrait_4_3' },
+        '香港': { nameEn: 'Hong Kong', image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Hong%20Kong%20Victoria%20Harbour%20skyline%20night%20lights%20ferry%20cinematic%20travel%20photography&image_size=portrait_4_3' },
+        '澳门': { nameEn: 'Macau', image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Macau%20Grand%20Prix%20casino%20lights%20night%20scene%20cinematic%20travel%20photography&image_size=portrait_4_3' },
+      };
+
+      const allCities = window.getAllCities().map(city => {
+        const featured = featuredCities[city.name];
+        return {
+          id: city.cityCode || city.name,
+          name: city.name,
+          province: city.province,
+          nameEn: featured ? featured.nameEn : city.province,
+          image: window.cityImages && window.cityImages[city.name] ? window.cityImages[city.name] : (featured ? featured.image : (city.image || `https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&q=80`)),
+        };
+      });
+
+      const currentTrip = trips.length > 0 ? trips[0] : null;
+      const totalBudget = 5000;
+      const usedBudget = (expenses || []).reduce((sum, e) => sum + e.amount, 0);
+      const budgetPercent = Math.min((usedBudget / totalBudget) * 100, 100);
+
+      const handleCityClick = (city) => {
+        const newTrip = {
+          id: Date.now(),
+          name: `${city.name}之旅`,
+          destination: city.name,
+          startDate: new Date().toISOString().split('T')[0],
+          endDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          duration: 5,
+          status: 'planning',
+        };
+        setCurrentTrip(newTrip);
+        const tripsData = JSON.parse(localStorage.getItem('travel_trips') || '[]');
+        tripsData.push(newTrip);
+        localStorage.setItem('travel_trips', JSON.stringify(tripsData));
+        setTrips([...tripsData]);
+        navigateTo('tripDetail');
+      };
+
+      return (
+        <div className="min-h-screen bg-[#071A2B]">
+          <div className="flex h-screen">
+            <main className="flex-1 overflow-y-auto pt-4">
+              <div className="relative h-[50vh] overflow-hidden">
+                <img src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1920&q=80" alt="Hero" className="absolute inset-0 w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/50 to-[#071A2B]"></div>
+                <div className="absolute inset-0 flex flex-col justify-center items-center text-center px-8">
+                  <h1 className="text-4xl lg:text-6xl font-bold mb-4">
+                    <span className="block text-[#00D9C5]">每一次出发</span>
+                    <span className="block mt-2 text-white">都是探索世界的开始</span>
+                  </h1>
+                  <p className="text-lg text-white/60 font-light italic mb-4">Every journey tells a story</p>
+                  <p className="text-white/50">31座城市，31种故事，<br />你的下一次冒险正在等待</p>
+                </div>
+              </div>
+
+              <div className="p-6 lg:p-8 -mt-10">
+                <div className="max-w-4xl mx-auto glass-card rounded-2xl p-4 mb-8">
+                  <div className="flex items-center gap-4">
+                    <span className="material-icons text-[#00D9C5]">search</span>
+                    <input 
+                      type="text" 
+                      placeholder="搜索目的地 / 景点 / 体验" 
+                      className="flex-1 bg-transparent text-white placeholder-white/40 outline-none text-lg"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          const searchValue = e.target.value.trim();
+                          const cities = window.getAllCities ? window.getAllCities() : [];
+                          const matchedCity = cities.find(c => c.name === searchValue);
+                          if (matchedCity) {
+                            const newTrip = {
+                            id: Date.now(),
+                            name: `${matchedCity.name}之旅`,
+                            destination: matchedCity.name,
+                            startDate: new Date().toISOString().split('T')[0],
+                            endDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                            duration: 5,
+                            status: 'planning',
+                          };
+                          const tripsData = JSON.parse(localStorage.getItem('travel_trips') || '[]');
+                          tripsData.push(newTrip);
+                          localStorage.setItem('travel_trips', JSON.stringify(tripsData));
+                          setTrips([...tripsData]);
+                          setCurrentTrip(newTrip);
+                          navigateTo('tripDetail');
+                          }
+                        }
+                      }}
+                    />
+                    <button className="p-2 rounded-full hover:bg-[#00D9C5]/20 transition-colors">
+                    <span className="material-icons text-[#00D9C5]">tune</span>
+                  </button>
+                </div>
+              </div>
+
+              <section className="mb-8">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-1 h-6 bg-gradient-to-b from-[#00D9C5] to-[#00A8A0] rounded-full"></div>
+                    <h2 className="text-xl font-bold text-white">当日天气 / 行程规划 / 预算管理 / 离线地图</h2>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {[
+                      { icon: 'cloud', title: '出行天气', subtitle: currentCity ? `${currentCity}天气` : '选择城市查看天气', page: 'weather', image: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400&q=80', color: 'from-cyan-900/60 to-blue-900/60', isWeather: true },
+                      { icon: 'calendar_today', title: '行程规划', subtitle: '智能规划路线，打造专属完美行程', page: 'smartItinerary', image: 'https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=400&q=80', color: 'from-blue-900/60 to-indigo-900/60' },
+                      { icon: 'wallet', title: '预算管理', subtitle: '合理分配预算，让旅行更轻松', page: 'budget', image: 'https://images.unsplash.com/photo-1518676590629-3dcbd9c5a5c9?w=400&q=80', color: 'from-purple-900/60 to-pink-900/60' },
+                      { icon: 'map', title: '离线地图', subtitle: '提前下载离线地图，无网也能畅游', page: 'map', image: 'https://images.unsplash.com/photo-1549488344-1f9b8d2bd1f3?w=400&q=80', color: 'from-teal-900/60 to-green-900/60' },
+                    ].map((tool, i) => (
+                      <button key={i} onClick={() => tool.isWeather && !currentCity ? setShowCitySelector(true) : navigateTo(tool.page)} className="group relative h-48 rounded-2xl overflow-hidden glass-card hover:scale-[1.02] transition-all duration-300">
+                        <img src={tool.image} alt={tool.title} className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.1]" />
+                        <div className={`absolute inset-0 bg-gradient-to-br ${tool.color}`}></div>
+                        <div className="absolute inset-0 bg-black/40"></div>
+                        <div className="absolute inset-0 p-4 flex flex-col justify-between">
+                          <div className="flex items-start justify-between">
+                            <div className="w-16 h-16 rounded-xl bg-[#00D9C5]/20 backdrop-blur-xl flex items-center justify-center border border-[#00D9C5]/30">
+                              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#00D9C5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0 0 10px rgba(0,217,197,0.8))' }}>
+                                {tool.icon === 'cloud' && <path d="M17.5 19c0-3.866-3.134-7-7-7-1.591 0-3.059.434-4.236 1.172C4.214 10.65 2 11.988 2 13.818v3.182h15.5zM19 16.5c0 1.381-1.119 2.5-2.5 2.5s-2.5-1.119-2.5-2.5 1.119-2.5 2.5-2.5 2.5 1.119 2.5 2.5z"/>}
+                                {tool.icon === 'calendar_today' && <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.103 0-2 .897-2 2v14c0 1.103.897 2 2 2h14c1.103 0 2-.897 2-2V5c0-1.103-.897-2-2-2zm0 16H5V8h14v11z"/>}
+                                {tool.icon === 'wallet' && <path d="M20 6h-4V4c0-1.103-.897-2-2-2H8c-1.103 0-2 .897-2 2v2H4c-1.103 0-2 .897-2 2v10c0 1.103.897 2 2 2h16c1.103 0 2-.897 2-2V8c0-1.103-.897-2-2-2zm-6 0h-4V4h4v2z"/>}
+                                {tool.icon === 'map' && <path d="M1 6h22M1 10h22M1 14h22M1 18h22M4 2v4M10 2v4M16 2v4M4 22v-4M10 22v-4M16 22v-4"/>}
+                              </svg>
+                            </div>
+                            <div className="w-8 h-8 rounded-full bg-white/10 backdrop-blur-xl flex items-center justify-center border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00D9C5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                            </div>
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-bold text-white mb-1">{tool.title}</h3>
+                            {tool.isWeather && currentWeather && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-xl font-bold text-cyan-400">{currentWeather.temp}°C</span>
+                                <span className="text-sm text-white/60">{currentWeather.condition}</span>
+                              </div>
+                            )}
+                            {tool.isWeather && !currentWeather && (
+                              <p className="text-sm text-white/60">{tool.subtitle}</p>
+                            )}
+                            {!tool.isWeather && <p className="text-sm text-white/60">{tool.subtitle}</p>}
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </section>
+
+                <section className="mb-8">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-1 h-6 bg-gradient-to-b from-[#00D9C5] to-[#00A8A0] rounded-full"></div>
+                      <h2 className="text-xl font-bold text-white">选择你的下一站</h2>
+                    </div>
+                    <span className="text-sm text-white/50">31座城市</span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-x-3 gap-y-2">
+                    {allCities.map((city, index) => (
+                      <button key={city.name} onClick={() => handleCityClick(city)} className="group relative w-[160px] h-[100px] lg:w-[125px] lg:h-[100px] rounded-xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.03] hover:-translate-y-1 bg-[#071A2B] shadow-lg hover:shadow-[0_8px_30px_rgba(0,217,197,0.15)]">
+                        <div className="absolute inset-0 bg-gradient-to-br from-[#00D9C5]/5 to-transparent"></div>
+                        <img src={city.image} alt={city.name} className="w-full h-full object-cover object-center scale-[1.15] transition-transform duration-700 group-hover:scale-[1.3]" loading="lazy" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/10"></div>
+                        <div className="absolute top-2 left-2">
+                          <span className="text-xs font-mono text-white/70 bg-black/40 backdrop-blur-sm border border-white/10 px-1.5 py-0.5 rounded">{String(index + 1).padStart(2, '0')}</span>
+                        </div>
+                        <div className="absolute bottom-0 left-0 right-0 p-3">
+                          <h3 className="text-white font-semibold text-sm leading-tight mb-0.5">{city.name}</h3>
+                          <p className="text-white/60 text-xs">{city.province}</p>
+                        </div>
+                        <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="w-6 h-6 rounded-full bg-[#00D9C5]/20 backdrop-blur-xl flex items-center justify-center border border-[#00D9C5]/40">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00D9C5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </section>
+
+                
+
+                <section className="relative rounded-3xl overflow-hidden h-48 mb-8">
+                  <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&q=80" alt="Footer" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-black/40"></div>
+                  <div className="absolute inset-0 flex flex-col justify-center items-center text-center px-8">
+                    <h2 className="text-3xl font-bold text-white mb-4">世界那么大，<br />一起去看看吧</h2>
+                    <button onClick={() => navigateTo('smartItinerary')} className="px-8 py-3 bg-gradient-to-r from-[#00D9C5] to-[#00A8A0] text-white font-semibold rounded-full shadow-[0_0_20px_rgba(0,217,197,0.5)] hover:scale-105 transition-transform">开始规划旅程</button>
+                  </div>
+                </section>
+
+                {showCitySelector && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowCitySelector(false)}></div>
+                    <div className="relative w-full max-w-2xl max-h-[80vh] bg-[#071A2B] rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
+                      <div className="flex items-center justify-between p-4 border-b border-white/10">
+                        <h3 className="text-xl font-bold text-white">选择城市查看天气</h3>
+                        <button onClick={() => setShowCitySelector(false)} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                        </button>
+                      </div>
+                      <div className="p-4 overflow-y-auto max-h-[calc(80vh-80px)]">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                          {allCities.map((city, index) => (
+                            <button 
+                              key={city.name} 
+                              onClick={() => handleCitySelect(city.name)}
+                              className="group flex flex-col items-center p-3 rounded-xl bg-white/5 hover:bg-[#00D9C5]/10 border border-transparent hover:border-[#00D9C5]/30 transition-all duration-300"
+                            >
+                              <div className="w-16 h-16 rounded-lg overflow-hidden mb-2">
+                                <img src={city.image} alt={city.name} className="w-full h-full object-cover" />
+                              </div>
+                              <span className="text-sm font-medium text-white">{city.name}</span>
+                              <span className="text-xs text-white/50">{city.province}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </main>
+          </div>
+        </div>
+      );
+    };
+
+    const TripCard = ({ trip, onClick, theme }) => {
+      const days = Math.ceil((new Date(trip.endDate) - new Date(trip.startDate)) / (1000 * 60 * 60 * 24)) + 1;
+      const statusColors = {
+        planning: 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30',
+        ongoing: 'bg-green-500/20 text-green-400 border border-green-500/30',
+        completed: 'bg-gray-500/20 text-white/50 border border-gray-500/30',
+      };
+
+      return (
+        <div 
+          onClick={onClick}
+          className="glass-card glass-card-hover rounded-xl p-4 cursor-pointer transition-all duration-300"
+        >
+          <div className="flex justify-between items-start mb-2">
+            <h3 className="font-bold text-lg text-white">{trip.name}</h3>
+            <span className={`text-xs px-2 py-1 rounded-full ${statusColors[trip.status] || statusColors.planning}`}>
+              {trip.status === 'planning' ? '规划中' : trip.status === 'ongoing' ? '进行中' : '已完成'}
+            </span>
+          </div>
+          <p className="text-cyan-400 mb-3 font-medium">{trip.destination}</p>
+          <div className="flex items-center gap-4 text-sm text-white/60">
+            <span className="flex items-center gap-1">
+              <span className="material-icons text-xs text-cyan-500">calendar_today</span>
+              {trip.startDate} - {trip.endDate}
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="material-icons text-xs text-cyan-500">timer</span>
+              {days}天
+            </span>
+          </div>
+        </div>
+      );
+    };
+
+    const FeatureCard = ({ icon, label, color, onClick }) => {
+      return (
+        <button 
+          onClick={onClick}
+          className="glass-card glass-card-hover rounded-xl p-4 flex flex-col items-center gap-3 card-hover btn-press transition-all duration-300"
+        >
+          <div 
+            className="w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110"
+            style={{ backgroundColor: 'rgba(0, 200, 180, 0.15)' }}
+          >
+            <span className="material-icons text-cyan-400" style={{ color: '#00d4cc', textShadow: '0 0 10px rgba(0, 200, 180, 0.5)' }}>{icon}</span>
+          </div>
+          <span className="text-sm font-medium text-white/80 hover:text-white transition-colors">{label}</span>
+        </button>
+      );
+    };
+
+    const TripsPage = ({ trips, setCurrentTrip, navigateTo, deleteTrip, theme }) => {
+      return (
+        <div className="pb-20 animate-fadeIn">
+          <h2 className="text-2xl font-bold mb-4 text-white">我的旅行</h2>
+          {trips.length === 0 ? (
+            <div className="text-center py-12 text-white/60">
+              <span className="material-icons text-4xl mb-4 text-cyan-400">trip_origin</span>
+              <p>暂无旅行计划</p>
+              <button 
+                onClick={() => navigateTo('createTrip')}
+                className="mt-4 px-6 py-2 bg-cyan-500 text-white rounded-full btn-glow hover:bg-cyan-600 transition-colors"
+              >
+                创建旅行
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {trips.map(trip => (
+                <div key={trip.id} className="glass-card glass-card-hover rounded-xl p-4">
+                  <div 
+                    onClick={() => {
+                      setCurrentTrip(trip);
+                      navigateTo('tripDetail');
+                    }}
+                    className="flex justify-between items-start cursor-pointer"
+                  >
+                    <div>
+                      <h3 className="font-bold text-lg text-white">{trip.name}</h3>
+                      <p className="text-cyan-400">{trip.destination}</p>
+                      <p className="text-sm text-white/60 mt-1">
+                        {trip.startDate} - {trip.endDate} · {trip.duration}天
+                      </p>
+                    </div>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (confirm('确定删除这个旅行计划吗？')) {
+                          deleteTrip(trip.id);
+                        }
+                      }}
+                      className="p-2 text-white/50 hover:text-red-400 transition-colors"
+                    >
+                      <span className="material-icons">delete</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    const CreateTripPage = ({ addTrip, navigateTo, goBack, theme }) => {
+      const [name, setName] = useState('');
+      const [destination, setDestination] = useState('');
+      const [startDate, setStartDate] = useState('');
+      const [endDate, setEndDate] = useState('');
+
+      const handleSubmit = (e) => {
+        e.preventDefault();
+        if (!name || !destination || !startDate || !endDate) {
+          alert('请填写完整信息');
+          return;
+        }
+        const days = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24)) + 1;
+        addTrip({ name, destination, startDate, endDate, duration: days });
+      };
+
+      const [searchCity, setSearchCity] = useState('');
+      const filteredCities = searchCity 
+        ? window.searchCities(searchCity) 
+        : window.getAllCities();
+
+      return (
+        <div className="pb-20 animate-fadeIn">
+          <h2 className="text-2xl font-bold mb-6 text-white">创建旅行计划</h2>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-white/80 mb-1">旅行名称</label>
+              <input 
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="例如：北京五日游"
+                className="w-full px-4 py-3 rounded-xl border border-cyan-500/30 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 outline-none transition-all bg-cyan-500/10 text-white placeholder-white/40"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-white/80 mb-1">目的地</label>
+              <input 
+                type="text"
+                value={searchCity}
+                onChange={(e) => setSearchCity(e.target.value)}
+                placeholder="搜索城市..."
+                className="w-full px-4 py-3 rounded-xl border border-cyan-500/30 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 outline-none transition-all mb-3 bg-cyan-500/10 text-white placeholder-white/40"
+              />
+              <div className="grid grid-cols-4 gap-2">
+                {filteredCities.map(city => (
+                  <button
+                    key={city.name}
+                    type="button"
+                    onClick={() => setDestination(city.name)}
+                    className={`px-3 py-2 rounded-lg text-sm transition-colors ${
+                      destination === city.name 
+                        ? 'bg-cyan-500 text-white btn-glow' 
+                        : 'bg-cyan-500/10 text-white/80 hover:bg-cyan-500/30'
+                    }`}
+                  >
+                    {city.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-white/80 mb-1">出发日期</label>
+                <input 
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-cyan-500/30 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 outline-none bg-cyan-500/10 text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-white/80 mb-1">返程日期</label>
+                <input 
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-cyan-500/30 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 outline-none bg-cyan-500/10 text-white"
+                />
+              </div>
+            </div>
+            <button 
+              type="submit"
+              className="w-full py-3 bg-cyan-500 text-white rounded-xl font-medium hover:bg-cyan-600 transition-colors btn-press btn-glow"
+            >
+              保存旅行计划
+            </button>
+            <button 
+              type="button"
+              onClick={goBack}
+              className="w-full py-3 bg-white/10 text-white/80 rounded-xl font-medium hover:bg-white/20 transition-colors btn-press"
+            >
+              取消
+            </button>
+          </form>
+        </div>
+      );
+    };
+
+    const TripDetailPage = ({ trip, expenses, theme, navigateTo, setCurrentTrip, setTrips }) => {
+      const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+      const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+      const [startDate, setStartDate] = useState(trip.startDate);
+      const [endDate, setEndDate] = useState(trip.endDate);
+
+      const updateTripDates = () => {
+        const tripsData = JSON.parse(localStorage.getItem('travel_trips') || '[]');
+        const tripIndex = tripsData.findIndex(t => t.id === trip.id);
+        if (tripIndex !== -1) {
+          const days = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24)) + 1;
+          const updatedTrip = { ...tripsData[tripIndex], startDate, endDate, duration: days };
+          tripsData[tripIndex] = updatedTrip;
+          localStorage.setItem('travel_trips', JSON.stringify(tripsData));
+          if (setTrips) setTrips([...tripsData]);
+          if (setCurrentTrip) setCurrentTrip({ ...updatedTrip });
+        }
+      };
+
+      const handleStartDateChange = (value) => {
+        const currentStart = new Date(startDate);
+        const currentEnd = new Date(endDate);
+        const duration = Math.max(0, Math.ceil((currentEnd - currentStart) / (1000 * 60 * 60 * 24)));
+        const newEndDate = new Date(value);
+        newEndDate.setDate(newEndDate.getDate() + duration);
+        const newEndDateStr = newEndDate.toISOString().split('T')[0];
+        
+        setStartDate(value);
+        setEndDate(newEndDateStr);
+        
+        const tripsData = JSON.parse(localStorage.getItem('travel_trips') || '[]');
+        const tripIndex = tripsData.findIndex(t => t.id === trip.id);
+        if (tripIndex !== -1) {
+          const days = duration + 1;
+          const updatedTrip = { ...tripsData[tripIndex], startDate: value, endDate: newEndDateStr, duration: days };
+          tripsData[tripIndex] = updatedTrip;
+          localStorage.setItem('travel_trips', JSON.stringify(tripsData));
+          if (setTrips) setTrips([...tripsData]);
+          if (setCurrentTrip) setCurrentTrip({ ...updatedTrip });
+        }
+      };
+
+      const handleEndDateChange = (value) => {
+        setEndDate(value);
+        
+        const tripsData = JSON.parse(localStorage.getItem('travel_trips') || '[]');
+        const tripIndex = tripsData.findIndex(t => t.id === trip.id);
+        if (tripIndex !== -1) {
+          const days = Math.ceil((new Date(value) - new Date(startDate)) / (1000 * 60 * 60 * 24)) + 1;
+          const updatedTrip = { ...tripsData[tripIndex], endDate: value, duration: days };
+          tripsData[tripIndex] = updatedTrip;
+          localStorage.setItem('travel_trips', JSON.stringify(tripsData));
+          console.log('=== TripDetailPage Date Change DEBUG ===');
+          console.log('Updated trip saved to localStorage:', updatedTrip);
+          if (setTrips) setTrips([...tripsData]);
+          if (setCurrentTrip) setCurrentTrip({ ...updatedTrip });
+        }
+      };
+
+      const calculateDuration = () => {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        const diffTime = Math.abs(end - start);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        return diffDays;
+      };
+
+      const totalExpense = expenses.reduce((sum, e) => sum + e.amount, 0);
+      const weather = getDefaultWeather(trip.destination);
+      const transportation = getDefaultTransportation(trip.destination);
+      const city = window.getCityByName(trip.destination);
+      const altitudeTip = city ? getAltitudeTips(city.altitude) : null;
+
+      const menuItems = [
+        { page: 'weather', icon: 'cloud', label: '天气', color: '#3B82F6' },
+        { page: 'map', icon: 'map', label: '地图', color: '#06B6D4' },
+        { page: 'attractions', icon: 'landmark', label: '景点', color: '#F59E0B' },
+        { page: 'accommodations', icon: 'hotel', label: '住宿', color: '#8B5CF6' },
+        { page: 'food', icon: 'restaurant', label: '美食', color: '#EF4444' },
+        { page: 'photoSpots', icon: 'camera_alt', label: '打卡', color: '#EC4899' },
+        { page: 'budget', icon: 'wallet', label: '预算', color: '#10B981' },
+        { page: 'itinerary', icon: 'calendar_today', label: '行程', color: '#0EA5E9' },
+      ];
+
+      return (
+        <div className="pb-20 animate-fadeIn">
+          <div className="relative rounded-2xl overflow-hidden h-48 mb-6">
+            <img 
+              src={`https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=800&q=80`} 
+              alt={trip.destination}
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex flex-col justify-end p-6">
+              <h1 className="text-2xl font-bold text-white mb-1">{trip.name}</h1>
+              <p className="text-white/80">{trip.destination}</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3 mb-6">
+            <div className="glass-card glass-card-hover rounded-xl p-4 text-center">
+              <div className="text-3xl font-bold text-cyan-400 glow-text">{calculateDuration()}</div>
+              <div className="text-sm text-white/60">天</div>
+            </div>
+            <div className="glass-card glass-card-hover rounded-xl p-4 text-center">
+              <div className="text-3xl font-bold text-cyan-400 glow-text">{weather.temp}°</div>
+              <div className="text-sm text-white/60">{weather.condition}</div>
+            </div>
+            <div className="glass-card glass-card-hover rounded-xl p-4">
+              <div className="flex justify-between items-center mb-2">
+                <div>
+                  <div className="text-2xl font-bold text-white">¥{totalExpense}</div>
+                  <div className="text-xs text-white/60">已支出</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-lg font-bold text-cyan-400">
+                    ¥{window.getCityBudget(trip.destination, calculateDuration()).medium.toLocaleString()}
+                  </div>
+                  <div className="text-xs text-white/60">推荐预算</div>
+                </div>
+              </div>
+              <div className="flex justify-between items-center text-xs">
+                <div className="text-white/50">
+                  ¥{window.getCityBudget(trip.destination, calculateDuration()).low.toLocaleString()} - 
+                  ¥{window.getCityBudget(trip.destination, calculateDuration()).high.toLocaleString()}
+                </div>
+                <div className="text-white/50">{window.getCityBudget(trip.destination, calculateDuration()).description}</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="glass-card glass-card-hover rounded-xl p-4 mb-6">
+            <h3 className="font-bold mb-3 text-white">行程时间</h3>
+            <div className="flex items-center gap-4">
+              <div 
+                className="flex flex-col items-center cursor-pointer hover:opacity-70 transition-opacity"
+                onClick={() => setShowStartDatePicker(true)}
+              >
+                <div className="w-12 h-12 rounded-full bg-cyan-500/20 flex items-center justify-center glow-border">
+                  <span className="material-icons text-cyan-400">flight_takeoff</span>
+                </div>
+                <span className="text-xs mt-1 text-white/60">出发</span>
+                <span className="text-sm font-medium text-cyan-400 mt-1">{startDate}</span>
+              </div>
+              <div className="flex-1 h-0.5 bg-gradient-to-r from-cyan-500/50 to-green-500/50"></div>
+              <div 
+                className="flex flex-col items-center cursor-pointer hover:opacity-70 transition-opacity"
+                onClick={() => setShowEndDatePicker(true)}
+              >
+                <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center glow-border">
+                  <span className="material-icons text-green-400">flight_land</span>
+                </div>
+                <span className="text-xs mt-1 text-white/60">返程</span>
+                <span className="text-sm font-medium text-green-400 mt-1">{endDate}</span>
+              </div>
+            </div>
+            <div className="text-center mt-3 text-sm text-cyan-400">
+              共 {calculateDuration()} 天
+            </div>
+          </div>
+
+          {showStartDatePicker && (
+            <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+              <div className="glass-card rounded-2xl p-6 w-80 max-w-[90%] animate-scaleIn">
+                <h3 className="font-bold text-lg mb-4 text-white">选择出发日期</h3>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => handleStartDateChange(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="w-full p-3 border border-cyan-500/30 rounded-xl mb-4 bg-cyan-500/10 text-white"
+                />
+                <button
+                  onClick={() => setShowStartDatePicker(false)}
+                  className="w-full py-3 bg-cyan-500 text-white rounded-xl font-medium hover:bg-cyan-600 transition-colors btn-glow"
+                >
+                  确认
+                </button>
+              </div>
+            </div>
+          )}
+
+          {showEndDatePicker && (
+            <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+              <div className="glass-card rounded-2xl p-6 w-80 max-w-[90%] animate-scaleIn">
+                <h3 className="font-bold text-lg mb-4 text-white">选择返程日期</h3>
+                <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => handleEndDateChange(e.target.value)}
+                    min={startDate}
+                    className="w-full p-3 border border-green-500/30 rounded-xl mb-4 bg-green-500/10 text-white"
+                  />
+                <button
+                  onClick={() => setShowEndDatePicker(false)}
+                  className="w-full py-3 bg-green-500 text-white rounded-xl font-medium hover:bg-green-600 transition-colors btn-glow"
+                >
+                  确认
+                </button>
+              </div>
+            </div>
+          )}
+
+          {transportation && (
+            <div className="glass-card rounded-xl p-4 mb-6">
+              <h3 className="font-bold mb-3 flex items-center gap-2 text-white">
+                <span className="material-icons text-white">directions</span>
+                交通信息
+              </h3>
+              
+              {transportation.flights && transportation.flights.length > 0 && (
+                <div className="mb-4">
+                  <div className="text-sm font-medium text-white mb-2">✈️ 航班信息</div>
+                  <div className="space-y-2">
+                    {transportation.flights.slice(0, 3).map((flight, index) => (
+                      <div key={index} className="flex justify-between items-center text-sm bg-[#071A2B]/60 backdrop-blur-xl rounded-lg p-3 border border-[#00D9C5]/20 hover:border-[#00D9C5]/40 transition-colors">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-white">{flight.from}</span>
+                            <span className="text-[#00D9C5]">→</span>
+                            <span className="font-medium text-white">{trip.destination}</span>
+                          </div>
+                          <div className="text-xs text-white/50 mt-1">
+                            {flight.duration} · {flight.airlines}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="text-right">
+                            <span className="font-bold text-[#00D9C5]">¥{flight.price}</span>
+                            <span className="text-xs text-white/50 ml-1">{flight.discount}</span>
+                          </div>
+                          <button
+                            onClick={() => window.open(flight.bookingUrl, '_blank')}
+                            className="px-3 py-1.5 bg-gradient-to-r from-[#00D9C5] to-[#00A8A0] text-[#071A2B] text-xs rounded-lg font-semibold hover:shadow-[0_0_15px_rgba(0,217,197,0.5)] transition-all"
+                          >
+                            预订
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {transportation.trains && transportation.trains.length > 0 && (
+                <div className="mb-4">
+                  <div className="text-sm font-medium text-white mb-2">🚄 火车信息</div>
+                  <div className="space-y-2">
+                    {transportation.trains.slice(0, 3).map((train, index) => (
+                      <div key={index} className="flex justify-between items-center text-sm bg-[#071A2B]/60 backdrop-blur-xl rounded-lg p-3 border border-[#00D9C5]/20 hover:border-[#00D9C5]/40 transition-colors">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-white">{train.from}</span>
+                            <span className="text-[#00D9C5]">→</span>
+                            <span className="font-medium text-white">{trip.destination}</span>
+                            {train.scenic && <span className="text-xs text-[#00D9C5] bg-[#00D9C5]/20 px-1.5 py-0.5 rounded">沿途风景</span>}
+                          </div>
+                          <div className="text-xs text-white/50 mt-1">
+                            {train.type} · {train.duration}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="text-right">
+                            <span className="font-bold text-[#00D9C5]">¥{train.price}</span>
+                          </div>
+                          <button
+                            onClick={() => window.open(train.bookingUrl, '_blank')}
+                            className="px-3 py-1.5 bg-gradient-to-r from-[#00D9C5] to-[#00A8A0] text-[#071A2B] text-xs rounded-lg font-semibold hover:shadow-[0_0_15px_rgba(0,217,197,0.5)] transition-all"
+                          >
+                            预订
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {transportation.tips && (
+                <div className="text-sm text-white/70 bg-[#00D9C5]/10 rounded-lg p-3 border border-[#00D9C5]/20">
+                  <span className="material-icons text-[#00D9C5] text-sm">info</span>
+                  <span className="ml-1">{transportation.tips}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {altitudeTip && altitudeTip.tips.length > 0 && (
+            <div className="glass-card rounded-xl p-4 mb-6 border-l-4" style={{ borderLeftColor: altitudeTip.color }}>
+              <h3 className="font-bold mb-3 flex items-center gap-2" style={{ color: altitudeTip.color }}>
+                <span className="material-icons">warning</span>
+                {altitudeTip.title} - {altitudeTip.altitude}米
+              </h3>
+              <div className="space-y-2">
+                {altitudeTip.tips.map((tip, index) => (
+                  <div key={index} className="flex items-start gap-2 text-sm text-white/70">
+                    <span className="material-icons text-xs mt-0.5" style={{ color: altitudeTip.color }}>check_circle</span>
+                    <span>{tip}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <h3 className="font-bold mb-4 text-white flex items-center gap-3">
+            <div className="w-1 h-6 bg-gradient-to-b from-[#00D9C5] to-[#00A8A0] rounded-full"></div>
+            探索工具舱
+          </h3>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { icon: 'cloud', label: '天气查询', page: 'weather' },
+              { icon: 'wallet', label: '预算管理', page: 'budget' },
+              { icon: 'map', label: '离线地图', page: 'map' },
+              { icon: 'map_pin', label: '景点推荐', page: 'attractions' },
+              { icon: 'hotel', label: '住宿预订', page: 'accommodations' },
+              { icon: 'restaurant', label: '特色小吃', page: 'food' },
+              { icon: 'camera_alt', label: '打卡机位', page: 'photoSpots' },
+              { icon: 'route', label: '行程规划', page: 'smartItinerary' },
+            ].map((tool, i) => (
+              <button key={i} onClick={() => navigateTo(tool.page)} className="group relative w-40 h-24 rounded-xl overflow-hidden glass-card hover:scale-105 transition-transform">
+                <div className="absolute inset-0 bg-gradient-to-br from-black/40 to-black/60"></div>
+                <div className="relative h-full flex flex-col items-center justify-center" style={{ gap: '8px' }}>
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00D9C5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0 0 6px rgba(0,217,197,0.5))' }}>
+                    {tool.icon === 'cloud' && <path d="M17.5 19c0-3.866-3.134-7-7-7-1.591 0-3.059.434-4.236 1.172C4.214 10.65 2 11.988 2 13.818v3.182h15.5zM19 16.5c0 1.381-1.119 2.5-2.5 2.5s-2.5-1.119-2.5-2.5 1.119-2.5 2.5-2.5 2.5 1.119 2.5 2.5z"/>}
+                    {tool.icon === 'wallet' && <path d="M20 6h-4V4c0-1.103-.897-2-2-2H8c-1.103 0-2 .897-2 2v2H4c-1.103 0-2 .897-2 2v10c0 1.103.897 2 2 2h16c1.103 0 2-.897 2-2V8c0-1.103-.897-2-2-2zm-6 0h-4V4h4v2z"/>}
+                    {tool.icon === 'map' && <path d="M1 6h22M1 10h22M1 14h22M1 18h22M4 2v4M10 2v4M16 2v4M4 22v-4M10 22v-4M16 22v-4"/>}
+                    {tool.icon === 'map_pin' && <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>}
+                    {tool.icon === 'hotel' && <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16zM7 16v-5l5-3.5 5 3.5v5z"/>}
+                    {tool.icon === 'restaurant' && <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>}
+                    {tool.icon === 'camera_alt' && <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/>}
+                    {tool.icon === 'route' && <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>}
+                  </svg>
+                  <span className="text-sm font-medium text-white/80 group-hover:text-white">{tool.label}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+    };
+
+    const WeatherPage = ({ destination, theme }) => {
+      const weather = getDefaultWeather(destination);
+
+      return (
+        <div className="pb-20 animate-fadeIn">
+          <h2 className="text-2xl font-bold mb-6 text-white">{destination}天气</h2>
+          
+          <div className="glass-card glass-card-hover rounded-2xl p-6 mb-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="text-4xl font-bold text-cyan-400 glow-text mb-2">{weather.temp}°C</h3>
+                <p className="text-lg text-white">{weather.condition}</p>
+                <p className="text-sm text-white/60 mt-1">{destination}</p>
+              </div>
+              <div className="w-24 h-24 rounded-full bg-cyan-500/20 flex items-center justify-center glow-border">
+                <span className="material-icons text-5xl text-cyan-400">
+                  {weather.condition.includes('雨') ? 'cloud_rain' : 
+                   weather.condition.includes('云') ? 'cloud' : 
+                   weather.condition.includes('阴') ? 'cloudy_snowing' : 'wb_sunny'}
+                </span>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4 mt-6 pt-6 border-t border-cyan-500/20">
+              <div className="flex items-center gap-3">
+                <span className="material-icons text-cyan-400">water_drop</span>
+                <div>
+                  <div className="text-sm text-white/60">湿度</div>
+                  <div className="font-medium text-white">{weather.humidity}%</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="material-icons text-cyan-400">air</span>
+                <div>
+                  <div className="text-sm text-white/60">风力</div>
+                  <div className="font-medium text-white">{weather.wind}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {weather.forecast.length > 0 && (
+            <div>
+              <h3 className="font-bold mb-3 text-white">未来预报</h3>
+              <div className="space-y-3">
+                {weather.forecast.map((day, index) => (
+                  <div key={index} className="glass-card glass-card-hover rounded-xl p-4 flex justify-between items-center">
+                    <span className="font-medium text-white">{day.day}</span>
+                    <span className="text-white/60">{day.condition}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-cyan-400">{day.high}°</span>
+                      <span className="text-white/40">/</span>
+                      <span className="text-white/60">{day.low}°</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    const BudgetPage = ({ expenses, addExpense, theme }) => {
+      const [showAddForm, setShowAddForm] = useState(false);
+      const [title, setTitle] = useState('');
+      const [amount, setAmount] = useState('');
+      const [category, setCategory] = useState('food');
+
+      const totalExpense = expenses.reduce((sum, e) => sum + e.amount, 0);
+      const categories = [
+        { key: 'food', label: '餐饮', color: '#00d4cc', icon: 'restaurant' },
+        { key: 'transport', label: '交通', color: '#00d4cc', icon: 'directions_car' },
+        { key: 'accommodation', label: '住宿', color: '#00d4cc', icon: 'hotel' },
+        { key: 'shopping', label: '购物', color: '#00d4cc', icon: 'shopping_bag' },
+        { key: 'entertainment', label: '娱乐', color: '#00d4cc', icon: 'movie' },
+        { key: 'other', label: '其他', color: '#6B7280', icon: 'more_horiz' },
+      ];
+
+      const categoryTotals = categories.map(cat => ({
+        ...cat,
+        amount: expenses.filter(e => e.category === cat.key).reduce((sum, e) => sum + e.amount, 0),
+      }));
+
+      const handleSubmit = (e) => {
+        e.preventDefault();
+        if (!title || !amount) {
+          alert('请填写完整信息');
+          return;
+        }
+        addExpense({ title, amount: parseFloat(amount), category });
+        setTitle('');
+        setAmount('');
+        setShowAddForm(false);
+      };
+
+      return (
+        <div className="pb-20 animate-fadeIn">
+          <h2 className="text-2xl font-bold mb-6 text-white">预算管理</h2>
+          
+          <div className="glass-card glass-card-hover rounded-2xl p-6 mb-6">
+            <div className="text-center">
+              <div className="text-sm text-white/60 mb-2">总支出</div>
+              <div className="text-4xl font-bold text-cyan-400 glow-text">¥{totalExpense.toFixed(2)}</div>
+            </div>
+          </div>
+
+          <div className="glass-card glass-card-hover rounded-xl p-4 mb-6">
+            <h3 className="font-bold mb-4 text-white">支出分类</h3>
+            <div className="space-y-3">
+              {categoryTotals.map(cat => (
+                <div key={cat.key} className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div 
+                      className="w-8 h-8 rounded-full flex items-center justify-center"
+                      style={{ backgroundColor: 'rgba(0, 200, 180, 0.15)' }}
+                    >
+                      <span className="material-icons text-sm text-cyan-400">{cat.icon}</span>
+                    </div>
+                    <span className="text-white/80">{cat.label}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="font-medium text-white">¥{cat.amount.toFixed(2)}</span>
+                    <div className="w-24 h-2 bg-cyan-500/20 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full rounded-full transition-all bg-cyan-400"
+                        style={{ 
+                          width: totalExpense > 0 ? `${(cat.amount / totalExpense) * 100}%` : '0%',
+                        }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {expenses.length > 0 && (
+            <div className="glass-card glass-card-hover rounded-xl p-4 mb-6">
+              <h3 className="font-bold mb-4 text-white">支出明细</h3>
+              <div className="space-y-3">
+                {expenses.map(expense => (
+                  <div key={expense.id} className="flex items-center justify-between py-2 border-b border-cyan-500/10 last:border-0">
+                    <div className="flex items-center gap-3">
+                      <span className="material-icons text-cyan-400">receipt</span>
+                      <div>
+                        <div className="font-medium text-white">{expense.title}</div>
+                        <div className="text-sm text-white/60">
+                          {categories.find(c => c.key === expense.category)?.label}
+                        </div>
+                      </div>
+                    </div>
+                    <span className="font-medium text-cyan-400">¥{expense.amount.toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <button 
+            onClick={() => setShowAddForm(!showAddForm)}
+            className="w-full py-3 bg-cyan-500 text-white rounded-xl font-medium hover:bg-cyan-600 transition-colors btn-glow"
+          >
+            {showAddForm ? '取消' : '添加支出'}
+          </button>
+
+          {showAddForm && (
+            <form onSubmit={handleSubmit} className="mt-4 space-y-4 animate-fadeIn">
+              <input 
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="支出项目"
+                className="w-full px-4 py-3 rounded-xl border border-cyan-500/30 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 outline-none bg-cyan-500/10 text-white placeholder-white/40"
+              />
+              <input 
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="金额"
+                className="w-full px-4 py-3 rounded-xl border border-cyan-500/30 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 outline-none bg-cyan-500/10 text-white placeholder-white/40"
+              />
+              <div>
+                <label className="block text-sm font-medium text-white/80 mb-2">分类</label>
+                <div className="flex flex-wrap gap-2">
+                  {categories.map(cat => (
+                    <button
+                      key={cat.key}
+                      type="button"
+                      onClick={() => setCategory(cat.key)}
+                      className={`px-4 py-2 rounded-lg text-sm transition-colors ${
+                        category === cat.key 
+                          ? 'bg-cyan-500 text-white btn-glow' 
+                          : 'bg-cyan-500/10 text-white/80 hover:bg-cyan-500/30'
+                      }`}
+                    >
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <button 
+                type="submit"
+                className="w-full py-3 bg-green-500 text-white rounded-xl font-medium hover:bg-green-600 transition-colors btn-glow"
+              >
+                保存
+              </button>
+            </form>
+          )}
+        </div>
+      );
+    };
+
+    const AttractionsPage = ({ destination, onAiGuide, aiGuideText, isSpeaking, speakGuide, stopSpeaking, onNavigate, theme }) => {
+      const [selectedAttraction, setSelectedAttraction] = useState(null);
+      const attractions = window.getDefaultAttractions(destination);
+
+      const getRouteToNext = (index) => {
+        if (index >= attractions.length - 1) return null;
+        const from = attractions[index];
+        const to = attractions[index + 1];
+        return getRouteInfo(from, to);
+      };
+
+      return (
+        <div className="pb-20 animate-fadeIn">
+          <h2 className="text-2xl font-bold mb-6 text-white">{destination}景点推荐</h2>
+          
+          {selectedAttraction && aiGuideText && (
+            <div className="glass-card rounded-xl p-4 mb-6 bg-gradient-to-r from-purple-50 to-blue-50">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-bold flex items-center gap-2 text-white">
+                  <span className="material-icons text-purple-600">mic</span>
+                  AI智能讲解
+                </h3>
+                <button 
+                  onClick={isSpeaking ? stopSpeaking : speakGuide}
+                  className={`p-2 rounded-full ${isSpeaking ? 'bg-red-100 text-red-600' : 'bg-purple-100 text-purple-600'}`}
+                >
+                  <span className="material-icons">{isSpeaking ? 'stop' : 'volume_up'}</span>
+                </button>
+              </div>
+              <p className="text-white/70 text-sm leading-relaxed">{aiGuideText}</p>
+              <button 
+                onClick={() => setSelectedAttraction(null)}
+                className="mt-4 text-sm text-white/60"
+              >
+                关闭讲解
+              </button>
+            </div>
+          )}
+
+          <div className="space-y-4">
+            {attractions.map((attraction, index) => {
+              const routeToNext = getRouteToNext(index);
+              const ticket = getTicketInfo(destination, attraction.name);
+              return (
+                <div key={attraction.name}>
+                  <div 
+                    className="glass-card rounded-xl overflow-hidden shadow-sm card-hover"
+                  >
+                    <div className="relative h-40 bg-gray-200">
+                      <img 
+                        src={attraction.image} 
+                        alt={attraction.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.src = `https://picsum.photos/seed/${encodeURIComponent(attraction.name)}/400/300`;
+                        }}
+                        loading="lazy"
+                      />
+                      {attraction.isMuseum && (
+                        <span className="absolute top-3 left-3 px-2 py-1 bg-orange-500 text-white text-xs rounded-full">
+                          博物馆
+                        </span>
+                      )}
+                      {ticket.needBooking && (
+                        <span className="absolute top-3 right-3 px-2 py-1 bg-red-500 text-white text-xs rounded-full">
+                          需预约
+                        </span>
+                      )}
+                    </div>
+                    <div className="p-4">
+                      <h3 className="font-bold text-lg mb-1 text-white">{attraction.name}</h3>
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className="text-sm text-white/60">{attraction.type}</span>
+                        <span className="font-bold text-orange-600">
+                          {ticket.price === 0 ? '免费' : `¥${ticket.price}`}
+                        </span>
+                        {ticket.openTime !== '待定' && (
+                          <span className="text-xs text-white/50">{ticket.openTime}</span>
+                        )}
+                      </div>
+                      <p className="text-sm text-white/70 mb-4 line-clamp-2">{attraction.desc}</p>
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => {
+                            setSelectedAttraction(attraction);
+                            onAiGuide(attraction.name);
+                          }}
+                          className="flex-1 py-2 bg-purple-100 text-purple-600 rounded-lg text-sm font-medium hover:bg-purple-200 transition-colors"
+                        >
+                          AI讲解
+                        </button>
+                        <button 
+                          onClick={() => onNavigate(attraction.lat, attraction.lng, attraction.name)}
+                          className="flex-1 py-2 bg-blue-100 text-blue-600 rounded-lg text-sm font-medium hover:bg-blue-200 transition-colors"
+                        >
+                          导航
+                        </button>
+                        {ticket.bookingUrl !== '#' && (
+                          <button 
+                            onClick={() => window.open(ticket.bookingUrl, '_blank')}
+                            className="flex-1 py-2 bg-green-100 text-green-600 rounded-lg text-sm font-medium hover:bg-green-200 transition-colors"
+                          >
+                            预约门票
+                          </button>
+                        )}
+                      </div>
+                      {(ticket.freeAge !== '-' || ticket.halfPriceAge !== '-') && (
+                        <div className="mt-3 text-xs text-white/50 flex flex-wrap gap-2">
+                          {ticket.freeAge !== '-' && <span>🆓 {ticket.freeAge}免费</span>}
+                          {ticket.halfPriceAge !== '-' && <span>½ {ticket.halfPriceAge}半价</span>}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {routeToNext && (
+                    <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-lg mt-2 mx-auto w-fit">
+                      <span className="material-icons text-blue-500 text-sm">arrow_right</span>
+                      <span className="text-sm text-blue-600">
+                        前往 <strong>{routeToNext.to}</strong>：{routeToNext.mode}约{routeToNext.time}分钟，{routeToNext.distance}公里
+                      </span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    };
+
+    const AccommodationsPage = ({ destination, setCurrentHotel, navigateTo, theme }) => {
+      const hotels = getDefaultHotels(destination);
+
+      const handleHotelClick = (hotel) => {
+        setCurrentHotel(hotel);
+        navigateTo('hotelDetail');
+      };
+
+      return (
+        <div className="pb-20 animate-fadeIn">
+          <h2 className="text-2xl font-bold mb-6 text-white">{destination}住宿推荐</h2>
+          
+          <div className="space-y-4">
+            {hotels.map(hotel => (
+              <div 
+                key={hotel.name}
+                className="glass-card rounded-xl overflow-hidden shadow-sm card-hover cursor-pointer"
+                onClick={() => handleHotelClick(hotel)}
+              >
+                <div className="relative h-40">
+                  <img 
+                    src={hotel.image} 
+                    alt={hotel.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.src = `https://picsum.photos/seed/${encodeURIComponent(hotel.name)}/400/300`;
+                    }}
+                  />
+                  <div className="absolute top-3">
+                    {hotel.featured && (
+                      <span className="px-2 py-1 bg-red-500 text-white text-xs rounded-full">
+                        特色推荐
+                      </span>
+                    )}
+                    {hotel.budget && (
+                      <span className="ml-2 px-2 py-1 bg-green-500 text-white text-xs rounded-full">
+                        性价比高
+                      </span>
+                    )}
+                  </div>
+                  <div className="absolute bottom-3 right-3 bg-black/60 text-white px-2 py-1 rounded-lg text-sm">
+                    ¥{hotel.price}/晚
+                  </div>
+                </div>
+                <div className="p-4">
+                  <h3 className="font-bold text-lg mb-1 text-white">{hotel.name}</h3>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="px-2 py-0.5 bg-gray-100 text-white/70 text-xs rounded-full">
+                      {hotel.type}
+                    </span>
+                    <span className="flex items-center gap-1 text-yellow-500">
+                      <span className="material-icons text-sm">star</span>
+                      {hotel.rating}
+                    </span>
+                  </div>
+                  <p className="text-sm text-white/60 mb-4 flex items-center gap-1">
+                    <span className="material-icons text-xs">location_on</span>
+                    {hotel.address}
+                  </p>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      window.open(hotel.bookingUrl, '_blank');
+                    }}
+                    className="w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                  >
+                    立即预订
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    };
+
+    const HotelDetailPage = ({ hotel, theme }) => {
+      const amenities = ['免费WiFi', '24小时前台', '空调', '热水淋浴', '吹风机', '电视'];
+      const reviews = [
+        { name: '游客A', rating: 5, text: '位置很好，服务周到，下次还会再来！', date: '2024-01-15' },
+        { name: '游客B', rating: 4, text: '房间干净整洁，性价比很高', date: '2024-01-10' },
+        { name: '游客C', rating: 5, text: '环境优美，早餐丰富，强烈推荐！', date: '2024-01-05' },
+      ];
+
+      return (
+        <div className="pb-20 animate-fadeIn">
+          <div className="relative h-64">
+            <img 
+              src={hotel.image} 
+              alt={hotel.name}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                e.target.src = `https://picsum.photos/seed/${encodeURIComponent(hotel.name)}/600/400`;
+              }}
+            />
+            <div className="absolute top-3 left-3">
+              {hotel.featured && (
+                <span className="px-3 py-1 bg-red-500 text-white text-sm rounded-full">
+                  特色推荐
+                </span>
+              )}
+              {hotel.budget && (
+                <span className="ml-2 px-3 py-1 bg-green-500 text-white text-sm rounded-full">
+                  性价比高
+                </span>
+              )}
+            </div>
+            <div className="absolute bottom-3 right-3 bg-black/70 text-white px-3 py-2 rounded-lg">
+              <span className="text-xl font-bold">¥{hotel.price}</span>
+              <span className="text-sm">/晚</span>
+            </div>
+          </div>
+
+          <div className="p-4 -mt-4 bg-[#0A1F35] rounded-t-2xl shadow-lg relative">
+            <h1 className="text-2xl font-bold mb-2 text-white">{hotel.name}</h1>
+            
+            <div className="flex items-center gap-3 mb-4">
+              <span className="flex items-center gap-1 text-yellow-500">
+                <span className="material-icons">star</span>
+                <span className="font-medium">{hotel.rating}</span>
+              </span>
+              <span className="text-white/40">|</span>
+              <span className="px-2 py-0.5 bg-cyan-500/20 text-cyan-400 text-sm rounded-full">
+                {hotel.type}
+              </span>
+              <span className="text-white/40">|</span>
+              <span className="text-white/60 text-sm">{hotel.address}</span>
+            </div>
+
+            <p className="text-white/70 mb-6">
+              {hotel.type === '酒店' ? '豪华舒适的住宿体验，设施齐全，服务周到，是您旅行的理想选择。' : 
+               hotel.type === '民宿' ? '温馨舒适的家庭式住宿，充满当地特色，让您感受到家的温暖。' : 
+               '经济实惠的青年旅舍，适合背包客和年轻人，结交志同道合的朋友。'}
+            </p>
+
+            <div className="mb-6">
+              <h3 className="font-bold mb-3 flex items-center gap-2 text-white">
+                <span className="material-icons text-white/60">check_circle</span>
+                设施服务
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {amenities.map((amenity, index) => (
+                  <span 
+                    key={index}
+                    className="px-3 py-1 bg-gray-100 text-white/70 text-sm rounded-full"
+                  >
+                    {amenity}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <h3 className="font-bold mb-3 flex items-center gap-2 text-white">
+                <span className="material-icons text-white/60">message</span>
+                用户评价
+              </h3>
+              <div className="space-y-4">
+                {reviews.map((review, index) => (
+                  <div key={index} className="border-b border-gray-100 pb-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-medium">{review.name}</span>
+                      <span className="text-xs text-white/50">{review.date}</span>
+                    </div>
+                    <div className="flex items-center gap-1 mb-1">
+                      {[...Array(5)].map((_, i) => (
+                        <span 
+                          key={i} 
+                          className={`material-icons text-sm ${i < review.rating ? 'text-yellow-500' : 'text-gray-300'}`}
+                        >
+                          star
+                        </span>
+                      ))}
+                    </div>
+                    <p className="text-sm text-white/70">{review.text}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <button 
+              onClick={() => window.open(hotel.bookingUrl, '_blank')}
+              className="w-full py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors btn-press"
+            >
+              立即预订
+            </button>
+          </div>
+        </div>
+      );
+    };
+
+    const FoodPage = ({ destination, theme }) => {
+      const foods = getDefaultFood(destination);
+
+      const handleFoodClick = (food) => {
+        if (food.lat && food.lng) {
+          const url = `https://maps.google.com/?q=${food.lat},${food.lng}&navigate=yes`;
+          window.open(url, '_blank');
+        }
+      };
+
+      return (
+        <div className="pb-20 animate-fadeIn">
+          <h2 className="text-2xl font-bold mb-6 text-white">{destination}特色小吃</h2>
+          
+          <div className="grid grid-cols-2 gap-4">
+            {foods.map(food => (
+              <div 
+                key={food.name}
+                className="glass-card rounded-xl overflow-hidden shadow-sm card-hover cursor-pointer"
+                onClick={() => handleFoodClick(food)}
+              >
+                <div className="relative h-32">
+                  <img 
+                    src={food.image} 
+                    alt={food.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.src = `https://picsum.photos/seed/${encodeURIComponent(food.name)}/300/200`;
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-3">
+                    <span className="text-white font-medium">{food.name}</span>
+                  </div>
+                  {food.lat && food.lng && (
+                    <div className="absolute top-2 right-2 bg-white/90 rounded-full p-1.5 shadow-sm">
+                      <span className="material-icons text-green-600 text-sm">navigation</span>
+                    </div>
+                  )}
+                </div>
+                <div className="p-3">
+                  <p className="text-sm text-white/70 mb-2">{food.desc}</p>
+                  {food.shop && (
+                    <div className="flex items-center gap-1 text-xs text-[#D9A441] bg-[#D9A441]/20 px-2 py-1 rounded-full w-fit">
+                      <span className="material-icons text-xs">store</span>
+                      <span>{food.shop}</span>
+                    </div>
+                  )}
+                  {food.lat && food.lng && (
+                    <div className="mt-2 flex items-center gap-1 text-xs text-green-400">
+                      <span className="material-icons text-xs">directions</span>
+                      <span>点击导航前往</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    };
+
+    const PhotoSpotsPage = ({ destination, onNavigate, theme }) => {
+      const [showUploadForm, setShowUploadForm] = useState(false);
+      const photoSpots = getDefaultPhotoSpots(destination);
+
+      return (
+        <div className="pb-20 animate-fadeIn">
+          <div className="flex justify-center items-center gap-4 mb-6">
+            <h2 className="text-2xl font-bold text-white">{destination}打卡机位</h2>
+            <button 
+              onClick={() => setShowUploadForm(!showUploadForm)}
+              className="px-4 py-2 bg-[#00D9C5]/20 text-[#00D9C5] rounded-lg text-sm font-medium hover:bg-[#00D9C5]/30 transition-colors border border-[#00D9C5]/30"
+            >
+              上传机位
+            </button>
+          </div>
+
+          {showUploadForm && (
+            <div className="glass-card rounded-xl p-4 mb-6 animate-fadeIn">
+              <h3 className="font-bold mb-4 text-white">分享打卡机位</h3>
+              <div className="space-y-3">
+                <input 
+                    type="text"
+                    placeholder="机位名称"
+                    className="w-full px-4 py-3 rounded-xl border border-white/20 bg-white/5 focus:border-pink-500 outline-none text-white placeholder-white/40"
+                  />
+                  <textarea 
+                    placeholder="拍摄地点和技巧"
+                    rows={3}
+                    className="w-full px-4 py-3 rounded-xl border border-white/20 bg-white/5 focus:border-pink-500 outline-none resize-none text-white placeholder-white/40"
+                  ></textarea>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => setShowUploadForm(false)}
+                      className="flex-1 py-2 bg-white/10 text-white/60 rounded-lg hover:bg-white/20 transition-colors"
+                    >
+                      取消
+                    </button>
+                    <button 
+                      onClick={() => {
+                        alert('上传成功！感谢您的分享');
+                        setShowUploadForm(false);
+                      }}
+                      className="flex-1 py-2 bg-pink-500/80 text-white rounded-lg hover:bg-pink-500 transition-colors"
+                    >
+                      提交
+                    </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-4">
+            {photoSpots.map(spot => (
+              <div 
+                key={spot.name}
+                className="glass-card rounded-xl overflow-hidden shadow-sm"
+              >
+                <div className="relative h-40 overflow-hidden">
+                  <img src={spot.image || 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&q=80'} alt={spot.name} className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
+                  <div className="absolute top-3 right-3 flex items-center gap-1 text-pink-400 bg-black/50 px-2 py-1 rounded-full text-sm">
+                    <span className="material-icons text-xs">favorite</span>
+                    {spot.likes}
+                  </div>
+                </div>
+                <div className="p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <h3 className="font-bold text-lg text-white">{spot.name}</h3>
+                    {spot.verified && (
+                      <span className="material-icons text-[#00D9C5] text-sm">verified</span>
+                    )}
+                  </div>
+                  <p className="text-white/70 mb-3">{spot.desc}</p>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center gap-2 text-white/60">
+                      <span className="material-icons text-xs text-[#00D9C5]">schedule</span>
+                      <span><strong className="text-white/80">最佳时间：</strong>{spot.bestTime}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-white/60">
+                      <span className="material-icons text-xs text-[#00D9C5]">camera_alt</span>
+                      <span><strong className="text-white/80">姿势推荐：</strong>{spot.poseTips}</span>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => onNavigate(spot.lat, spot.lng, spot.name)}
+                    className="mt-4 w-full py-2 bg-[#00D9C5]/20 text-[#00D9C5] rounded-lg text-sm font-medium hover:bg-[#00D9C5]/30 transition-colors border border-[#00D9C5]/30"
+                  >
+                    导航前往
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    };
+
+    const ItineraryPage = ({ trip, theme }) => {
+      const [generatedItinerary, setGeneratedItinerary] = useState(null);
+      const [isGenerating, setIsGenerating] = useState(false);
+      const attractions = window.getDefaultAttractions(trip.destination);
+
+      useEffect(() => {
+        setGeneratedItinerary(null);
+      }, [trip.startDate, trip.endDate]);
+
+      const calculateDuration = () => {
+        const start = new Date(trip.startDate);
+        const end = new Date(trip.endDate);
+        const diffTime = Math.abs(end - start);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        return diffDays;
+      };
+
+      const generateItinerary = () => {
+        setIsGenerating(true);
+        setTimeout(() => {
+          const days = calculateDuration();
+          const rawItinerary = window.generateItinerary(trip.destination, days);
+          
+          const itinerary = rawItinerary.map((dayPlan, index) => {
+            const activities = [];
+            
+            if (index === 0) {
+              activities.push({ time: '08:00', type: 'info', content: `从${trip.destination}出发，开启旅程`, icon: 'navigation', slot: 'morning' });
+            }
+            
+            const timeSlots = [
+              { slot: 'morning', time: dayPlan.morning?.time, data: dayPlan.morning },
+              { slot: 'morning', time: dayPlan.morning2?.time, data: dayPlan.morning2 },
+              { slot: 'afternoon', time: dayPlan.lunch?.time, data: dayPlan.lunch, isFood: true },
+              { slot: 'afternoon', time: dayPlan.afternoon?.time, data: dayPlan.afternoon },
+              { slot: 'afternoon', time: dayPlan.afternoon2?.time, data: dayPlan.afternoon2 },
+              { slot: 'evening', time: dayPlan.dinner?.time, data: dayPlan.dinner, isFood: true },
+              { slot: 'evening', time: dayPlan.evening?.time, data: dayPlan.evening },
+            ];
+            
+            timeSlots.forEach(({ slot, time, data, isFood }) => {
+              if (!time || !data) return;
+              
+              if (isFood) {
+                activities.push({ 
+                  time, 
+                  type: 'food', 
+                  slot,
+                  ...data.food 
+                });
+              } else {
+                activities.push({ 
+                  time, 
+                  type: 'attraction', 
+                  slot,
+                  name: data.attraction?.name || '',
+                  desc: data.attraction?.desc || '',
+                  category: data.attraction?.type || '',
+                  lat: data.attraction?.lat,
+                  lng: data.attraction?.lng,
+                  openTime: data.attraction?.openTime,
+                  ticketPrice: data.attraction?.ticketPrice,
+                  duration: data.attraction?.duration,
+                  facilities: data.facilities,
+                  eveningActivity: data.activity,
+                });
+              }
+            });
+            
+            if (index === rawItinerary.length - 1) {
+              activities.push({ time: '14:00', type: 'info', content: `返回${trip.destination}，结束行程`, icon: 'home', slot: 'afternoon' });
+            }
+            
+            activities.sort((a, b) => a.time.localeCompare(b.time));
+            
+            return {
+              day: dayPlan.day,
+              date: index === 0 ? trip.startDate : '',
+              routeDistance: dayPlan.routeDistance,
+              morning: activities.filter(a => a.slot === 'morning'),
+              afternoon: activities.filter(a => a.slot === 'afternoon'),
+              evening: activities.filter(a => a.slot === 'evening'),
+            };
+          });
+
+          setGeneratedItinerary(itinerary);
+          setIsGenerating(false);
+        }, 1500);
+      };
+
+      const getTimeSlotStyle = (slot) => {
+        if (slot === 'morning') return { bg: 'bg-blue-500/10', border: 'border-blue-500/30', label: '上午', icon: 'sunrise' };
+        if (slot === 'afternoon') return { bg: 'bg-orange-500/10', border: 'border-orange-500/30', label: '下午', icon: 'sunny' };
+        return { bg: 'bg-purple-500/10', border: 'border-purple-500/30', label: '晚上', icon: 'sunset' };
+      };
+
+      return (
+        <div className="pb-20 animate-fadeIn">
+          <h2 className="text-2xl font-bold mb-2 text-white">{trip.destination}行程规划</h2>
+          <p className="text-white/60 text-sm mb-6">共{calculateDuration()}天，{generatedItinerary ? generatedItinerary.reduce((sum, day) => sum + [...day.morning, ...day.afternoon, ...day.evening].filter(a => a.type === 'attraction').length, 0) : attractions.length}个景点</p>
+
+          {!generatedItinerary ? (
+            <div className="glass-card rounded-2xl p-8 text-center">
+              <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-blue-500/20 flex items-center justify-center">
+                <span className="material-icons text-4xl text-blue-400">route</span>
+              </div>
+              <h3 className="text-xl font-bold mb-2 text-white">智能行程规划</h3>
+              <p className="text-white/60 text-sm mb-6">
+                根据您的旅行天数，为您自动规划最佳行程路线，包含景点游玩和美食推荐
+              </p>
+              <button
+                onClick={generateItinerary}
+                disabled={isGenerating}
+                className={`w-full py-3 rounded-xl font-bold transition-all ${
+                  isGenerating
+                    ? 'bg-white/10 text-white/40 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-[#00D9C5] to-[#00A8A0] text-white hover:opacity-90'
+                }`}
+              >
+                {isGenerating ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="animate-spin material-icons">refresh</span>
+                    正在生成...
+                  </span>
+                ) : (
+                  '一键生成行程'
+                )}
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {generatedItinerary.map((dayPlan) => (
+                <div key={dayPlan.day} className="glass-card rounded-xl overflow-hidden">
+                  <div className="bg-gradient-to-r from-[#00D9C5] to-[#00A8A0] p-4 text-[#071A2B]">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                          <span className="font-bold">D{dayPlan.day}</span>
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-white">第{dayPlan.day}天</h3>
+                          {dayPlan.date && <p className="text-white/80 text-sm">{dayPlan.date}</p>}
+                          <div className="flex flex-wrap gap-2 mt-1">
+                            {dayPlan.morning && dayPlan.morning.attraction && (
+                              <span className="px-2 py-0.5 bg-white/20 rounded text-xs">{dayPlan.morning.attraction.name}</span>
+                            )}
+                            {dayPlan.morning2 && dayPlan.morning2.attraction && (
+                              <span className="px-2 py-0.5 bg-white/20 rounded text-xs">{dayPlan.morning2.attraction.name}</span>
+                            )}
+                            {dayPlan.afternoon && dayPlan.afternoon.attraction && (
+                              <span className="px-2 py-0.5 bg-white/20 rounded text-xs">{dayPlan.afternoon.attraction.name}</span>
+                            )}
+                            {dayPlan.afternoon2 && dayPlan.afternoon2.attraction && (
+                              <span className="px-2 py-0.5 bg-white/20 rounded text-xs">{dayPlan.afternoon2.attraction.name}</span>
+                            )}
+                            {dayPlan.evening && dayPlan.evening.attraction && (
+                              <span className="px-2 py-0.5 bg-white/20 rounded text-xs">{dayPlan.evening.attraction.name}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <span className="text-sm bg-white/20 px-3 py-1 rounded-full">
+                        {dayPlan.morning.length + dayPlan.afternoon.length + dayPlan.evening.length}个活动
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-4">
+                    {dayPlan.routeDistance > 0 && (
+                      <div className="bg-green-50 rounded-lg p-3 mb-4 flex items-center gap-2">
+                        <span className="material-icons text-green-600">route</span>
+                        <span className="text-sm text-green-700">今日行程距离：{dayPlan.routeDistance}公里</span>
+                      </div>
+                    )}
+                    
+                    {['morning', 'afternoon', 'evening'].map((slot) => {
+                      const style = getTimeSlotStyle(slot);
+                      const activities = dayPlan[slot];
+                      if (!activities) return null;
+                      
+                      const activitiesArray = Array.isArray(activities) ? activities : [activities];
+                      if (activitiesArray.length === 0) return null;
+                      
+                      return (
+                        <div key={slot} className={`mb-4 ${slot !== 'evening' ? 'pb-4 border-b border-white/10' : ''}`}>
+                          <div className="flex items-center gap-2 mb-3">
+                            <span className="material-icons text-sm" style={{ color: slot === 'morning' ? '#60A5FA' : slot === 'afternoon' ? '#FB923C' : '#A78BFA' }}>
+                              {style.icon}
+                            </span>
+                            <span className="font-medium text-white/80">{style.label}</span>
+                          </div>
+                          
+                          <div className="space-y-3">
+                            {activitiesArray.map((activity, index) => (
+                              <div key={index} className={`rounded-lg ${style.bg} ${style.border} border overflow-hidden`}>
+                                <div className="flex gap-3 p-3">
+                                  <div className="flex-shrink-0">
+                                    <span className="font-bold text-white/90">{activity.time}</span>
+                                  </div>
+                                  <div className="flex-1">
+                                    {activity.type === 'attraction' ? (
+                                      <div>
+                                        <div className="flex items-center justify-between">
+                                          <h4 className="font-medium text-white">{activity.name}</h4>
+                                          {activity.lat && activity.lng && (
+                                            <button 
+                                              onClick={() => window.open(`https://maps.google.com?q=${activity.lat},${activity.lng}`)}
+                                              className="text-cyan-400 hover:text-cyan-300"
+                                            >
+                                              <span className="material-icons text-sm">navigation</span>
+                                            </button>
+                                          )}
+                                        </div>
+                                        <p className="text-sm text-white/70">{activity.desc}</p>
+                                        <div className="flex items-center gap-3 mt-1 text-xs text-white/50">
+                                          {activity.duration && (
+                                            <span className="flex items-center gap-1">
+                                              <span className="material-icons text-xs">hourglass_empty</span>
+                                              建议游玩{activity.duration}小时
+                                            </span>
+                                          )}
+                                          {activity.openTime && (
+                                            <span className="flex items-center gap-1">
+                                              <span className="material-icons text-xs">schedule</span>
+                                              {activity.openTime}
+                                            </span>
+                                          )}
+                                          {activity.ticketPrice !== undefined && activity.ticketPrice !== null && (
+                                            <span className="flex items-center gap-1">
+                                              <span className="material-icons text-xs">attach_money</span>
+                                              {activity.ticketPrice === 0 ? '免费' : `${activity.ticketPrice}元`}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    ) : activity.type === 'food' ? (
+                                      <div>
+                                        <h4 className="font-medium text-white">🍽️ {activity.name}</h4>
+                                        <p className="text-sm text-white/60">{activity.shop} · {activity.desc}</p>
+                                      </div>
+                                    ) : (
+                                      <div>
+                                        <h4 className="font-medium text-white">
+                                          <span className="material-icons text-sm text-blue-500">{activity.icon}</span>
+                                          {activity.content}
+                                        </h4>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                                
+                                {activity.type === 'attraction' && activity.facilities && (
+                                  <div className="px-3 pb-3">
+                                    <div className="bg-white/80 rounded-lg p-2">
+                                      <div className="flex flex-wrap gap-2">
+                                        {activity.facilities.toilets && activity.facilities.toilets.length > 0 && (
+                                          <button 
+                                            onClick={() => {
+                                              const toilet = activity.facilities.toilets[0];
+                                              window.open(`https://maps.google.com?q=${toilet.lat},${toilet.lng}`);
+                                            }}
+                                            className="flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-xs hover:bg-yellow-200 transition-colors"
+                                          >
+                                            <span className="material-icons text-xs">wc</span>
+                                            厕所 ({activity.facilities.toilets[0]?.distance?.toFixed(1)}km)
+                                          </button>
+                                        )}
+                                        {activity.facilities.subwayStations && activity.facilities.subwayStations.length > 0 && (
+                                          <button 
+                                            onClick={() => {
+                                              const station = activity.facilities.subwayStations[0];
+                                              window.open(`https://maps.google.com?q=${station.lat},${station.lng}`);
+                                            }}
+                                            className="flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 transition-colors"
+                                          >
+                                            <span className="material-icons text-xs">directions_subway</span>
+                                            地铁 ({activity.facilities.subwayStations[0]?.distance?.toFixed(1)}km)
+                                          </button>
+                                        )}
+                                        {activity.facilities.busStations && activity.facilities.busStations.length > 0 && (
+                                          <button 
+                                            onClick={() => {
+                                              const station = activity.facilities.busStations[0];
+                                              window.open(`https://maps.google.com?q=${station.lat},${station.lng}`);
+                                            }}
+                                            className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded text-xs hover:bg-green-200 transition-colors"
+                                          >
+                                            <span className="material-icons text-xs">directions_bus</span>
+                                            公交 ({activity.facilities.busStations[0]?.distance?.toFixed(1)}km)
+                                          </button>
+                                        )}
+                                        {activity.facilities.supermarkets && activity.facilities.supermarkets.length > 0 && (
+                                          <button 
+                                            onClick={() => {
+                                              const market = activity.facilities.supermarkets[0];
+                                              window.open(`https://maps.google.com?q=${market.lat},${market.lng}`);
+                                            }}
+                                            className="flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs hover:bg-orange-200 transition-colors"
+                                          >
+                                            <span className="material-icons text-xs">shopping_cart</span>
+                                            超市 ({activity.facilities.supermarkets[0]?.distance?.toFixed(1)}km)
+                                          </button>
+                                        )}
+                                        {activity.facilities.hospitals && activity.facilities.hospitals.length > 0 && (
+                                          <button 
+                                            onClick={() => {
+                                              const hospital = activity.facilities.hospitals[0];
+                                              window.open(`https://maps.google.com?q=${hospital.lat},${hospital.lng}`);
+                                            }}
+                                            className="flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded text-xs hover:bg-red-200 transition-colors"
+                                          >
+                                            <span className="material-icons text-xs">local_hospital</span>
+                                            医院 ({activity.facilities.hospitals[0]?.distance?.toFixed(1)}km)
+                                          </button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+
+              <div className="bg-blue-50 rounded-xl p-4">
+                <h4 className="font-bold text-white mb-2 flex items-center gap-2">
+                  <span className="material-icons">tips_and_updates</span>
+                  行程小贴士
+                </h4>
+                <ul className="text-sm text-blue-600 space-y-1">
+                  {window.getCityTravelTips(trip.destination).map((tip, index) => (
+                    <li key={index}>• {tip}</li>
+                  ))}
+                </ul>
+              </div>
+
+              <button
+                onClick={generateItinerary}
+                className="w-full py-3 bg-gray-100 text-white rounded-xl font-medium hover:bg-gray-200 transition-colors"
+              >
+                重新生成行程
+              </button>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    const SmartItineraryPage = ({ currentTrip, setCurrentTrip, navigateTo }) => {
+      const getLatestTrip = () => {
+        const tripsData = JSON.parse(localStorage.getItem('travel_trips') || '[]');
+        console.log('=== SmartItineraryPage DEBUG ===');
+        console.log('localStorage tripsData:', tripsData);
+        console.log('currentTrip prop:', currentTrip);
+        
+        let result = null;
+        if (tripsData.length > 0) {
+          if (currentTrip) {
+            const found = tripsData.find(t => t.id === currentTrip.id);
+            console.log('Found trip by id:', found);
+            if (found) result = found;
+          }
+          if (!result) {
+            result = tripsData[tripsData.length - 1];
+            console.log('Using last trip:', result);
+          }
+        } else if (currentTrip) {
+          result = currentTrip;
+          console.log('Using currentTrip prop:', result);
+        }
+        
+        if (!result && currentTrip) {
+          result = currentTrip;
+          console.log('Fallback to currentTrip prop:', result);
+        }
+        
+        if (result) {
+          const calculatedDays = Math.ceil((new Date(result.endDate) - new Date(result.startDate)) / (1000 * 60 * 60 * 24)) + 1;
+          console.log('Calculated days:', calculatedDays, '| startDate:', result.startDate, '| endDate:', result.endDate);
+        }
+        
+        return result;
+      };
+      
+      const [destination, setDestination] = useState('');
+      const [days, setDays] = useState(3);
+      const [generatedItinerary, setGeneratedItinerary] = useState(null);
+      const [isGenerating, setIsGenerating] = useState(false);
+      const [searchCity, setSearchCity] = useState('');
+
+      useEffect(() => {
+        const latestTrip = getLatestTrip();
+        if (latestTrip && latestTrip.destination) {
+          const tripDays = Math.ceil((new Date(latestTrip.endDate) - new Date(latestTrip.startDate)) / (1000 * 60 * 60 * 24)) + 1;
+          setDestination(latestTrip.destination);
+          setDays(tripDays);
+        }
+      }, [currentTrip]);
+
+      const handleDaysChange = (newDays) => {
+        setDays(newDays);
+        if (currentTrip && setCurrentTrip) {
+          const start = new Date(currentTrip.startDate);
+          const end = new Date(start);
+          end.setDate(start.getDate() + newDays - 1);
+          const updatedTrip = {
+            ...currentTrip,
+            duration: newDays,
+            endDate: end.toISOString().split('T')[0],
+          };
+          setCurrentTrip(updatedTrip);
+          const tripsData = JSON.parse(localStorage.getItem('travel_trips') || '[]');
+          const tripIndex = tripsData.findIndex(t => t.id === currentTrip.id);
+          if (tripIndex !== -1) {
+            tripsData[tripIndex] = updatedTrip;
+            localStorage.setItem('travel_trips', JSON.stringify(tripsData));
+          }
+        }
+      };
+      
+      const filteredCities = searchCity 
+        ? window.searchCities(searchCity) 
+        : window.getAllCities();
+
+      const handleGenerate = () => {
+        if (!destination) {
+          alert('请选择目的地');
+          return;
+        }
+        setIsGenerating(true);
+        setTimeout(() => {
+          const rawItinerary = window.generateItinerary(destination, days, destination, destination);
+          
+          const itinerary = rawItinerary.map((dayPlan, index) => {
+            const activities = [];
+            
+            if (index === 0) {
+              activities.push({ time: '08:00', type: 'info', content: `从${destination}出发，开启旅程`, icon: 'navigation', slot: 'morning' });
+            }
+            
+            const timeSlots = [
+              { slot: 'morning', time: dayPlan.morning?.time, data: dayPlan.morning },
+              { slot: 'morning', time: dayPlan.morning2?.time, data: dayPlan.morning2 },
+              { slot: 'afternoon', time: dayPlan.lunch?.time, data: dayPlan.lunch, isFood: true },
+              { slot: 'afternoon', time: dayPlan.afternoon?.time, data: dayPlan.afternoon },
+              { slot: 'afternoon', time: dayPlan.afternoon2?.time, data: dayPlan.afternoon2 },
+              { slot: 'evening', time: dayPlan.dinner?.time, data: dayPlan.dinner, isFood: true },
+              { slot: 'evening', time: dayPlan.evening?.time, data: dayPlan.evening },
+            ];
+            
+            timeSlots.forEach(({ slot, time, data, isFood }) => {
+              if (!time || !data) return;
+              
+              if (isFood) {
+                activities.push({ 
+                  time, 
+                  type: 'food', 
+                  slot,
+                  ...data.food 
+                });
+              } else {
+                activities.push({ 
+                  time, 
+                  type: 'attraction', 
+                  slot,
+                  name: data.attraction?.name || '',
+                  desc: data.attraction?.desc || '',
+                  category: data.attraction?.type || '',
+                  lat: data.attraction?.lat,
+                  lng: data.attraction?.lng,
+                  openTime: data.attraction?.openTime,
+                  ticketPrice: data.attraction?.ticketPrice,
+                  duration: data.attraction?.duration,
+                  facilities: data.facilities,
+                  eveningActivity: data.activity,
+                });
+              }
+            });
+            
+            if (index === rawItinerary.length - 1) {
+              activities.push({ time: '14:00', type: 'info', content: `返回${destination}，结束行程`, icon: 'home', slot: 'afternoon' });
+            }
+            
+            activities.sort((a, b) => a.time.localeCompare(b.time));
+            
+            return {
+              day: dayPlan.day,
+              routeDistance: dayPlan.routeDistance,
+              morning: activities.filter(a => a.slot === 'morning'),
+              afternoon: activities.filter(a => a.slot === 'afternoon'),
+              evening: activities.filter(a => a.slot === 'evening'),
+            };
+          });
+
+          setGeneratedItinerary(itinerary);
+          setIsGenerating(false);
+        }, 1500);
+      };
+
+      const getTimeSlotStyle = (slot) => {
+        if (slot === 'morning') return { bg: 'bg-blue-500/10', border: 'border-blue-500/30', label: '上午', icon: 'sunrise' };
+        if (slot === 'afternoon') return { bg: 'bg-orange-500/10', border: 'border-orange-500/30', label: '下午', icon: 'sunny' };
+        return { bg: 'bg-purple-500/10', border: 'border-purple-500/30', label: '晚上', icon: 'sunset' };
+      };
+
+      const saveTrip = () => {
+        let newTrip;
+        if (currentTrip) {
+          const start = new Date(currentTrip.startDate);
+          const end = new Date(start);
+          end.setDate(start.getDate() + days - 1);
+          newTrip = {
+            ...currentTrip,
+            name: `${destination}${days}日游`,
+            destination,
+            duration: days,
+            endDate: end.toISOString().split('T')[0],
+          };
+        } else {
+          const start = new Date();
+          const end = new Date(start);
+          end.setDate(start.getDate() + days - 1);
+          newTrip = {
+            id: Date.now(),
+            name: `${destination}${days}日游`,
+            destination,
+            duration: days,
+            startDate: start.toISOString().split('T')[0],
+            endDate: end.toISOString().split('T')[0],
+            status: 'planning',
+          };
+        }
+        setCurrentTrip(newTrip);
+        navigateTo('tripDetail');
+      };
+
+      return (
+        <div className="pb-20 animate-fadeIn">
+          <h2 className="text-2xl font-bold mb-2 text-white">智能行程规划</h2>
+          <p className="text-white/60 text-sm mb-6">输入目的地和天数，AI为您生成专属旅行计划</p>
+
+          {!generatedItinerary ? (
+            <div className="glass-card rounded-2xl p-6">
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-white mb-2">选择目的地</label>
+                <input 
+                  type="text"
+                  value={searchCity}
+                  onChange={(e) => setSearchCity(e.target.value)}
+                  placeholder="搜索目的地城市..."
+                  className="w-full px-4 py-3 rounded-xl border border-[#00D9C5]/30 focus:border-[#00D9C5] focus:ring-2 focus:ring-[#00D9C5]/30 outline-none transition-all mb-3 bg-[#071A2B]/80 backdrop-blur-xl text-white placeholder-white/40"
+                />
+                <div className="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto">
+                  {filteredCities.map(city => (
+                    <button
+                      key={city.name}
+                      type="button"
+                      onClick={() => {
+                        const newDestination = city.name;
+                        setDestination(newDestination);
+                        setSearchCity('');
+                        if (currentTrip && setCurrentTrip) {
+                          const updatedTrip = {
+                            ...currentTrip,
+                            destination: newDestination,
+                            name: `${newDestination}${days}日游`,
+                          };
+                          setCurrentTrip(updatedTrip);
+                          const tripsData = JSON.parse(localStorage.getItem('travel_trips') || '[]');
+                          const tripIndex = tripsData.findIndex(t => t.id === currentTrip.id);
+                          if (tripIndex !== -1) {
+                            tripsData[tripIndex] = updatedTrip;
+                            localStorage.setItem('travel_trips', JSON.stringify(tripsData));
+                          }
+                        }
+                      }}
+                      className={`px-3 py-2 rounded-lg text-sm transition-colors ${
+                        destination === city.name 
+                          ? 'bg-[#00D9C5] text-[#071A2B] font-semibold shadow-[0_0_15px_rgba(0,217,197,0.5)]' 
+                          : 'bg-[#00D9C5]/10 text-white/80 hover:bg-[#00D9C5]/30 border border-[#00D9C5]/20'
+                      }`}
+                    >
+                      {city.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-white mb-2">旅行天数</label>
+                <div className="flex items-center gap-4">
+                  <input 
+                    type="range"
+                    min="1"
+                    max="14"
+                    value={days}
+                    onChange={(e) => handleDaysChange(parseInt(e.target.value))}
+                    className="flex-1 h-2 bg-[#00D9C5]/20 rounded-lg appearance-none cursor-pointer accent-[#00D9C5]"
+                    style={{
+                      background: `linear-gradient(to right, #00D9C5 0%, #00D9C5 ${((days - 1) / 13) * 100}%, rgba(0,217,197,0.2) ${((days - 1) / 13) * 100}%, rgba(0,217,197,0.2) 100%)`
+                    }}
+                  />
+                  <span className="text-xl font-bold text-[#00D9C5] w-12 text-center">{days}天</span>
+                </div>
+                <div className="flex justify-between text-xs text-white/50 mt-2">
+                  <span>1天</span>
+                  <span>14天</span>
+                </div>
+              </div>
+
+              <button
+                onClick={handleGenerate}
+                disabled={isGenerating || !destination}
+                className={`w-full py-3 rounded-xl font-bold transition-all ${
+                  isGenerating || !destination
+                    ? 'bg-white/10 text-white/40 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-[#00D9C5] to-[#00A8A0] text-white hover:scale-[1.02] shadow-[0_0_20px_rgba(0,217,197,0.5)]'
+                }`}
+              >
+                {isGenerating ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="animate-spin material-icons">refresh</span>
+                    AI正在规划...
+                  </span>
+                ) : (
+                  '生成智能行程'
+                )}
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <div className="glass-card rounded-xl p-4 bg-gradient-to-r from-[#00D9C5] to-[#00A8A0] text-[#071A2B]">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-bold text-xl">{destination}{days}日游</h3>
+                    <p className="text-white/80 text-sm">{generatedItinerary.length}天行程规划</p>
+                  </div>
+                  <button
+                    onClick={saveTrip}
+                    className="px-4 py-2 bg-white/30 text-[#071A2B] rounded-lg font-medium hover:bg-white/50 transition-colors backdrop-blur-sm"
+                  >
+                    保存行程
+                  </button>
+                </div>
+              </div>
+
+              {generatedItinerary.map((dayPlan) => (
+                <div key={dayPlan.day} className="glass-card rounded-xl overflow-hidden">
+                  <div className="bg-gradient-to-r from-[#00D9C5] to-[#00A8A0] p-4 text-[#071A2B]">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                        <span className="font-bold">D{dayPlan.day}</span>
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-white">第{dayPlan.day}天</h3>
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          {dayPlan.morning && dayPlan.morning.map && dayPlan.morning.map(act => act.type === 'attraction' && (
+                            <span key={act.name} className="px-2 py-0.5 bg-white/20 rounded text-xs">{act.name}</span>
+                          ))}
+                          {dayPlan.afternoon && dayPlan.afternoon.map && dayPlan.afternoon.map(act => act.type === 'attraction' && (
+                            <span key={act.name} className="px-2 py-0.5 bg-white/20 rounded text-xs">{act.name}</span>
+                          ))}
+                          {dayPlan.evening && dayPlan.evening.map && dayPlan.evening.map(act => act.type === 'attraction' && (
+                            <span key={act.name} className="px-2 py-0.5 bg-white/20 rounded text-xs">{act.name}</span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-4">
+                    {dayPlan.routeDistance > 0 && (
+                      <div className="bg-green-50 rounded-lg p-3 mb-4 flex items-center gap-2">
+                        <span className="material-icons text-green-600">route</span>
+                        <span className="text-sm text-green-700">今日行程距离：{dayPlan.routeDistance}公里</span>
+                      </div>
+                    )}
+                    
+                    {['morning', 'afternoon', 'evening'].map((slot) => {
+                      const style = getTimeSlotStyle(slot);
+                      const activities = dayPlan[slot];
+                      if (!activities) return null;
+                      
+                      const activitiesArray = Array.isArray(activities) ? activities : [activities];
+                      if (activitiesArray.length === 0) return null;
+                      
+                      return (
+                        <div key={slot} className={`mb-4 ${slot !== 'evening' ? 'pb-4 border-b border-white/10' : ''}`}>
+                          <div className="flex items-center gap-2 mb-3">
+                            <span className="material-icons text-sm" style={{ color: slot === 'morning' ? '#60A5FA' : slot === 'afternoon' ? '#FB923C' : '#A78BFA' }}>
+                              {style.icon}
+                            </span>
+                            <span className="font-medium text-white/80">{style.label}</span>
+                          </div>
+                          
+                          <div className="space-y-3">
+                            {activitiesArray.map((activity, index) => (
+                              <div key={index} className={`rounded-lg ${style.bg} ${style.border} border overflow-hidden`}>
+                                <div className="flex gap-3 p-3">
+                                  <div className="flex-shrink-0">
+                                    <span className="font-bold text-white/90">{activity.time}</span>
+                                  </div>
+                                  <div className="flex-1">
+                                    {activity.type === 'attraction' ? (
+                                      <div>
+                                        <div className="flex items-center justify-between">
+                                          <h4 className="font-medium text-white">{activity.name}</h4>
+                                          {activity.lat && activity.lng && (
+                                            <button 
+                                              onClick={() => window.open(`https://maps.google.com?q=${activity.lat},${activity.lng}`)}
+                                              className="text-cyan-400 hover:text-cyan-300"
+                                            >
+                                              <span className="material-icons text-sm">navigation</span>
+                                            </button>
+                                          )}
+                                        </div>
+                                        <p className="text-sm text-white/70">{activity.desc}</p>
+                                        <div className="flex items-center gap-3 mt-1 text-xs text-white/50">
+                                          {activity.duration && (
+                                            <span className="flex items-center gap-1">
+                                              <span className="material-icons text-xs">hourglass_empty</span>
+                                              建议游玩{activity.duration}小时
+                                            </span>
+                                          )}
+                                          {activity.openTime && (
+                                            <span className="flex items-center gap-1">
+                                              <span className="material-icons text-xs">schedule</span>
+                                              {activity.openTime}
+                                            </span>
+                                          )}
+                                          {activity.ticketPrice !== undefined && activity.ticketPrice !== null && (
+                                            <span className="flex items-center gap-1">
+                                              <span className="material-icons text-xs">attach_money</span>
+                                              {activity.ticketPrice === 0 ? '免费' : `${activity.ticketPrice}元`}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    ) : activity.type === 'food' ? (
+                                      <div>
+                                        <h4 className="font-medium text-white">🍽️ {activity.name}</h4>
+                                        <p className="text-sm text-white/60">{activity.shop} · {activity.desc}</p>
+                                      </div>
+                                    ) : (
+                                      <div>
+                                        <h4 className="font-medium text-white">
+                                          <span className="material-icons text-sm text-blue-500">{activity.icon}</span>
+                                          {activity.content}
+                                        </h4>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                                
+                                {activity.type === 'attraction' && activity.facilities && (
+                                  <div className="px-3 pb-3">
+                                    <div className="bg-white/80 rounded-lg p-2">
+                                      <div className="flex flex-wrap gap-2">
+                                        {activity.facilities.toilets && activity.facilities.toilets.length > 0 && (
+                                          <button 
+                                            onClick={() => {
+                                              const toilet = activity.facilities.toilets[0];
+                                              window.open(`https://maps.google.com?q=${toilet.lat},${toilet.lng}`);
+                                            }}
+                                            className="flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-xs hover:bg-yellow-200 transition-colors"
+                                          >
+                                            <span className="material-icons text-xs">wc</span>
+                                            厕所 ({activity.facilities.toilets[0]?.distance?.toFixed(1)}km)
+                                          </button>
+                                        )}
+                                        {activity.facilities.subwayStations && activity.facilities.subwayStations.length > 0 && (
+                                          <button 
+                                            onClick={() => {
+                                              const station = activity.facilities.subwayStations[0];
+                                              window.open(`https://maps.google.com?q=${station.lat},${station.lng}`);
+                                            }}
+                                            className="flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 transition-colors"
+                                          >
+                                            <span className="material-icons text-xs">directions_subway</span>
+                                            地铁 ({activity.facilities.subwayStations[0]?.distance?.toFixed(1)}km)
+                                          </button>
+                                        )}
+                                        {activity.facilities.busStations && activity.facilities.busStations.length > 0 && (
+                                          <button 
+                                            onClick={() => {
+                                              const station = activity.facilities.busStations[0];
+                                              window.open(`https://maps.google.com?q=${station.lat},${station.lng}`);
+                                            }}
+                                            className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded text-xs hover:bg-green-200 transition-colors"
+                                          >
+                                            <span className="material-icons text-xs">directions_bus</span>
+                                            公交 ({activity.facilities.busStations[0]?.distance?.toFixed(1)}km)
+                                          </button>
+                                        )}
+                                        {activity.facilities.supermarkets && activity.facilities.supermarkets.length > 0 && (
+                                          <button 
+                                            onClick={() => {
+                                              const market = activity.facilities.supermarkets[0];
+                                              window.open(`https://maps.google.com?q=${market.lat},${market.lng}`);
+                                            }}
+                                            className="flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs hover:bg-orange-200 transition-colors"
+                                          >
+                                            <span className="material-icons text-xs">shopping_cart</span>
+                                            超市 ({activity.facilities.supermarkets[0]?.distance?.toFixed(1)}km)
+                                          </button>
+                                        )}
+                                        {activity.facilities.hospitals && activity.facilities.hospitals.length > 0 && (
+                                          <button 
+                                            onClick={() => {
+                                              const hospital = activity.facilities.hospitals[0];
+                                              window.open(`https://maps.google.com?q=${hospital.lat},${hospital.lng}`);
+                                            }}
+                                            className="flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded text-xs hover:bg-red-200 transition-colors"
+                                          >
+                                            <span className="material-icons text-xs">local_hospital</span>
+                                            医院 ({activity.facilities.hospitals[0]?.distance?.toFixed(1)}km)
+                                          </button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+
+              <div className="glass-card rounded-xl p-4 bg-[#00D9C5]/10 border border-[#00D9C5]/20">
+                <h4 className="font-bold text-[#00D9C5] mb-2 flex items-center gap-2">
+                  <span className="material-icons">tips_and_updates</span>
+                  行程小贴士
+                </h4>
+                <ul className="text-sm text-white/70 space-y-1">
+                  {window.getCityTravelTips(destination).map((tip, index) => (
+                    <li key={index}>• {tip}</li>
+                  ))}
+                </ul>
+              </div>
+
+              <button
+                onClick={() => setGeneratedItinerary(null)}
+                className="w-full py-3 bg-white/10 text-white rounded-xl font-medium hover:bg-[#00D9C5]/20 transition-colors border border-[#00D9C5]/30"
+              >
+                重新规划
+              </button>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    const MapPage = ({ destination, theme }) => {
+      const mapRef = React.useRef(null);
+      const attractions = window.getDefaultAttractions(destination);
+      const city = window.getCityByName(destination);
+      
+      const centerLatLng = attractions.length > 0 
+        ? [attractions[0].lat, attractions[0].lng]
+        : city ? [city.lat, city.lng] : [39.9042, 116.4074];
+
+      React.useEffect(() => {
+        if (!window.L || !mapRef.current) return;
+        
+        const map = window.L.map(mapRef.current).setView(centerLatLng, attractions.length > 5 ? 12 : 13);
+        
+        window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors',
+        }).addTo(map);
+
+        const greenIcon = window.L.divIcon({
+          className: 'custom-div-icon',
+          html: `<div style="background-color:#4CAF50;width:16px;height:16px;border-radius:50%;border:3px solid white;box-shadow:0 2px 5px rgba(0,0,0,0.3)"></div>`,
+          iconSize: [22, 22],
+          iconAnchor: [11, 11],
+        });
+
+        attractions.forEach((attraction, index) => {
+          const marker = window.L.marker([attraction.lat, attraction.lng], { icon: greenIcon })
+            .addTo(map)
+            .bindPopup(`<b>${index + 1}. ${attraction.name}</b><br>${attraction.desc}`);
+        });
+
+        if (attractions.length > 1) {
+          const points = attractions.map(a => [a.lat, a.lng]);
+          
+          window.L.polyline(points, {
+            color: '#2196F3',
+            weight: 3,
+            opacity: 0.7,
+            dashArray: '5, 10',
+          }).addTo(map);
+
+          for (let i = 0; i < attractions.length - 1; i++) {
+            const from = attractions[i];
+            const to = attractions[i + 1];
+            const midLat = (from.lat + to.lat) / 2;
+            const midLng = (from.lng + to.lng) / 2;
+            
+            const routeInfo = getRouteInfo(from, to);
+            const popupContent = `<b>${from.name} → ${to.name}</b><br>${routeInfo.mode}约${routeInfo.time}分钟<br>${routeInfo.distance}公里`;
+            
+            window.L.circleMarker([midLat, midLng], {
+              radius: 6,
+              fillColor: '#FF9800',
+              color: '#fff',
+              weight: 2,
+              opacity: 1,
+              fillOpacity: 1,
+            }).addTo(map).bindPopup(popupContent);
+          }
+        }
+
+        return () => {
+          map.remove();
+        };
+      }, [centerLatLng, attractions]);
+
+      return (
+        <div className="pb-20 animate-fadeIn">
+          <h2 className="text-2xl font-bold mb-6 text-white">{destination}景点分布图</h2>
+          <div className="glass-card rounded-xl overflow-hidden shadow-sm">
+            <div 
+              ref={mapRef} 
+              className="w-full h-96"
+            ></div>
+            <div className="px-4 py-3 bg-gray-50 border-t flex items-center gap-6 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded-full bg-green-500 border-2 border-white"></div>
+                <span className="text-white/70">景点位置</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-12 h-0.5 bg-blue-500" style={{ backgroundImage: 'repeating-linear-gradient(to right, #2196F3, #2196F3 5px, transparent 5px, transparent 15px)' }}></div>
+                <span className="text-white/70">游览路线</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-orange-500 border-2 border-white"></div>
+                <span className="text-white/70">点击查看通勤信息</span>
+              </div>
+            </div>
+          </div>
+          <div className="mt-6 space-y-3">
+            {attractions.map((attraction, index) => {
+              const routeToNext = index < attractions.length - 1 ? getRouteInfo(attraction, attractions[index + 1]) : null;
+              return (
+                <div 
+                  key={attraction.name}
+                  className="glass-card rounded-xl p-4 flex items-center gap-4"
+                >
+                  <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center text-sm font-bold">
+                    {index + 1}
+                  </div>
+                  <img 
+                    src={attraction.image} 
+                    alt={attraction.name}
+                    className="w-16 h-16 rounded-lg object-cover"
+                  />
+                  <div className="flex-1">
+                    <h3 className="font-bold text-white">{attraction.name}</h3>
+                    <p className="text-sm text-white/60">{attraction.type}</p>
+                    {routeToNext && (
+                      <p className="text-xs text-blue-600 mt-1">
+                        → {routeToNext.mode}约{routeToNext.time}分钟到{routeToNext.to}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
