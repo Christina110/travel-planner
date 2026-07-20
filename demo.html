@@ -660,26 +660,271 @@
         </div>
     </div>
 
+    <style>
+        .subtitle-overlay {
+            position: fixed;
+            bottom: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            z-index: 10000;
+            pointer-events: none;
+        }
+        
+        .subtitle-text {
+            font-size: 24px;
+            font-weight: 600;
+            color: #00D9C5;
+            text-shadow: 0 0 20px rgba(0, 217, 197, 0.8);
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        
+        .subtitle-text.visible {
+            opacity: 1;
+        }
+        
+        .subtitle-subtext {
+            font-size: 16px;
+            color: white;
+            opacity: 0.8;
+            margin-top: 8px;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        
+        .subtitle-subtext.visible {
+            opacity: 0.8;
+        }
+        
+        .timer-overlay {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            font-size: 14px;
+            color: #00D9C5;
+            z-index: 10000;
+            background: rgba(7, 26, 43, 0.8);
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid rgba(0, 217, 197, 0.3);
+        }
+        
+        .play-button-overlay {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9999;
+        }
+        
+        .play-btn {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00D9C5, #00A8A0);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 0 30px rgba(0, 217, 197, 0.5);
+            transition: transform 0.3s ease;
+        }
+        
+        .play-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        .play-btn svg {
+            width: 32px;
+            height: 32px;
+            fill: white;
+            margin-left: 4px;
+        }
+        
+        .demo-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(7, 26, 43, 0.95);
+            z-index: 9998;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+    </style>
+
+    <div class="demo-overlay" id="demoOverlay">
+        <div class="play-button-overlay">
+            <div class="play-btn" id="playBtn">
+                <svg viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z"/>
+                </svg>
+            </div>
+            <p class="text-center text-white mt-4 text-lg">点击开始60秒产品演示</p>
+        </div>
+    </div>
+
+    <div class="timer-overlay" id="timerOverlay">
+        <span id="timer">00:00</span> / 01:00
+    </div>
+
+    <div class="subtitle-overlay" id="subtitleOverlay">
+        <div class="subtitle-text" id="subtitleText"></div>
+        <div class="subtitle-subtext" id="subtitleSubtext"></div>
+    </div>
+
     <script>
         const cursorDot = document.getElementById('cursorDot');
         const cursorRing = document.getElementById('cursorRing');
+        const demoOverlay = document.getElementById('demoOverlay');
+        const playBtn = document.getElementById('playBtn');
+        const timerOverlay = document.getElementById('timerOverlay');
+        const subtitleOverlay = document.getElementById('subtitleOverlay');
+        const subtitleText = document.getElementById('subtitleText');
+        const subtitleSubtext = document.getElementById('subtitleSubtext');
+        const timer = document.getElementById('timer');
+
+        let isAutoDemo = false;
+        let demoTime = 0;
+        let demoInterval = null;
+        let cursorInterval = null;
 
         document.addEventListener('mousemove', (e) => {
-            cursorDot.style.left = e.clientX + 'px';
-            cursorDot.style.top = e.clientY + 'px';
-            cursorRing.style.left = (e.clientX - 10) + 'px';
-            cursorRing.style.top = (e.clientY - 10) + 'px';
+            if (!isAutoDemo) {
+                cursorDot.style.left = e.clientX + 'px';
+                cursorDot.style.top = e.clientY + 'px';
+                cursorRing.style.left = (e.clientX - 10) + 'px';
+                cursorRing.style.top = (e.clientY - 10) + 'px';
+            }
         });
 
         function scrollToTop() {
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
+        function setSubtitle(text, subtext = '') {
+            subtitleText.textContent = text;
+            subtitleSubtext.textContent = subtext;
+            subtitleText.classList.add('visible');
+            subtitleSubtext.classList.add('visible');
+        }
+
+        function clearSubtitle() {
+            subtitleText.classList.remove('visible');
+            subtitleSubtext.classList.remove('visible');
+        }
+
+        function updateTimer() {
+            demoTime++;
+            const minutes = Math.floor(demoTime / 60);
+            const seconds = demoTime % 60;
+            timer.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function moveCursorTo(x, y) {
+            cursorDot.style.left = x + 'px';
+            cursorDot.style.top = y + 'px';
+            cursorRing.style.left = (x - 10) + 'px';
+            cursorRing.style.top = (y - 10) + 'px';
+        }
+
+        async function runDemo() {
+            isAutoDemo = true;
+            demoOverlay.classList.add('hidden');
+            timerOverlay.classList.remove('hidden');
+            demoTime = 0;
+            updateTimer();
+
+            demoInterval = setInterval(updateTimer, 1000);
+
+            await new Promise(r => setTimeout(r, 500));
+            moveCursorTo(window.innerWidth / 2, window.innerHeight / 2);
+
+            setSubtitle('旅行规划助手', '沉浸式探索之旅');
+            await new Promise(r => setTimeout(r, 3000));
+            clearSubtitle();
+
+            setSubtitle('31座城市', '发现你的下一站');
+            await scrollToPosition(300, 1500);
+            clearSubtitle();
+
+            await new Promise(r => setTimeout(r, 500));
+            const cityCards = document.querySelectorAll('.city-card');
+            for (let i = 0; i < 3 && i < cityCards.length; i++) {
+                const card = cityCards[i];
+                const rect = card.getBoundingClientRect();
+                moveCursorTo(rect.left + rect.width / 2, rect.top + rect.height / 2);
+                card.classList.add('hover');
+                await new Promise(r => setTimeout(r, 800));
+                card.classList.remove('hover');
+            }
+
+            setSubtitle('北京 · 城市详情', '探索历史与现代的交融');
+            await scrollToPosition(800, 1500);
+            clearSubtitle();
+
+            await new Promise(r => setTimeout(r, 1000));
+
+            setSubtitle('热门景点', '故宫、长城、颐和园');
+            await new Promise(r => setTimeout(r, 2000));
+            clearSubtitle();
+
+            setSubtitle('特色美食', '北京烤鸭、涮羊肉');
+            await new Promise(r => setTimeout(r, 2000));
+            clearSubtitle();
+
+            setSubtitle('打卡机位', '捕捉最美瞬间');
+            await new Promise(r => setTimeout(r, 2000));
+            clearSubtitle();
+
+            setSubtitle('智能行程规划', 'AI生成专属路线');
+            await scrollToPosition(1500, 1500);
+            clearSubtitle();
+
+            await new Promise(r => setTimeout(r, 2000));
+
+            setSubtitle('世界那么大', '一起去看看吧');
+            await scrollToPosition(document.body.scrollHeight - window.innerHeight, 1500);
+            await new Promise(r => setTimeout(r, 3000));
+            clearSubtitle();
+
+            clearInterval(demoInterval);
+            isAutoDemo = false;
+            
             setTimeout(() => {
-                window.scrollTo({ top: 200, behavior: 'smooth' });
-            }, 3000);
-        });
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                timerOverlay.classList.add('hidden');
+                demoOverlay.classList.remove('hidden');
+            }, 1000);
+        }
+
+        function scrollToPosition(position, duration) {
+            return new Promise(resolve => {
+                const start = window.scrollY;
+                const startTime = performance.now();
+                
+                function scrollStep(currentTime) {
+                    const elapsed = currentTime - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    const easeProgress = 1 - Math.pow(1 - progress, 3);
+                    window.scrollTo({ top: start + (position - start) * easeProgress, behavior: 'auto' });
+                    
+                    if (progress < 1) {
+                        requestAnimationFrame(scrollStep);
+                    } else {
+                        resolve();
+                    }
+                }
+                
+                requestAnimationFrame(scrollStep);
+            });
+        }
+
+        playBtn.addEventListener('click', runDemo);
     </script>
 </body>
 </html>
